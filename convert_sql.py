@@ -30,6 +30,6 @@ def convert_sql(pre_convert_sql_list: list):
             continue
         else:
             idx += 1
-            f = open('./SQLTool/file/sqls/sql'+str(idx)+'.txt', 'w')
+            f = open('./ExtractSQLTool/file/sqls/sql'+str(idx)+'.txt', 'w')
             f.write(s)
             f.close()

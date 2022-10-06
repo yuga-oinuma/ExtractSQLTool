@@ -11,7 +11,7 @@ def read_file(file: str):
 
 
 if __name__ == '__main__':
-    files = glob.glob("SQLTool/file/*.txt")
+    files = glob.glob("ExtractSQLTool/file/*.txt")
 
     if not files:
         sys.exit("ファイルが存在しません")
