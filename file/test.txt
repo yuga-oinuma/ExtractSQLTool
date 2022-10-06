@@ -1,0 +1,2096 @@
+Option Explicit On
+
+Imports Microsoft.VisualBasic
+Imports Microsoft.Office.Interop 'v2.8 2017.03.30 M.Suzuki(TSK) Add Start
+Imports System.Runtime.InteropServices 'v2.8 2017.03.30 M.Suzuki(TSK) Add End
+
+Public Class form1
+    '******************************************************************************
+    '*フォームロード処理
+    '******************************************************************************
+    Private Sub form1_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
+
+        'Dim str_SQL As String
+        'Dim bln_Ver As Boolean
+        'Dim Rs As ADODB.Recordset
+        'Dim objDB As ADODB.Connection
+
+        '前回閉じた時のフォームサイズと位置情報の読込
+        Me.Location = My.Settings.MyLocation         'フォーム位置
+        Me.ClientSize = My.Settings.MyClientSize     'フォームサイズ
+
+        ' Me.Text = Application.ExecutablePath & " Ver." & My.Application.Info.Version.ToString
+        Me.Text = Me.Text & " Ver." & My.Application.Info.Version.ToString
+
+        'ﾊﾟﾗﾒｰﾀﾌｧｲﾙの内容チェック
+        Pub_ParamFileName = My.Application.Info.DirectoryPath & "\sysprm.xml"
+
+        If Trim(GetParam(Pub_ParamFileName, "SVName")) = "" Then
+            Me.Close()
+            Exit Sub
+        ElseIf Trim(GetParam(Pub_ParamFileName, "ftpSVName")) = "" Then
+            Me.Close()
+            Exit Sub
+        ElseIf Trim(GetParam(Pub_ParamFileName, "ftpUser")) = "" Then
+            Me.Close()
+            Exit Sub
+        ElseIf Trim(GetParam(Pub_ParamFileName, "ftpPass")) = "" Then
+            Me.Close()
+            Exit Sub
+        ElseIf Trim(GetParam(Pub_ParamFileName, "ftpUpDir")) = "" Then
+            Me.Close()
+            Exit Sub
+        ElseIf Trim(GetParam(Pub_ParamFileName, "sBaanSVName")) = "" Then
+            Me.Close()
+            Exit Sub
+        ElseIf Trim(GetParam(Pub_ParamFileName, "ID")) = "" Then
+            Me.Close()
+            Exit Sub
+        ElseIf Trim(GetParam(Pub_ParamFileName, "PASS")) = "" Then
+            Me.Close()
+            Exit Sub
+        ElseIf Trim(GetParam(Pub_ParamFileName, "VerSVName")) = "" Then
+            Me.Close()
+            Exit Sub
+        ElseIf Trim(GetParam(Pub_ParamFileName, "VerID")) = "" Then
+            Me.Close()
+            Exit Sub
+        ElseIf Trim(GetParam(Pub_ParamFileName, "VerPASS")) = "" Then
+            Me.Close()
+            Exit Sub
+            'v2.6 2017.02.20 M.Suzuki(TSK) Add Start
+        ElseIf Trim(GetParam(Pub_ParamFileName, "TokyuIkiti")) = "" Then
+            Me.Close()
+            Exit Sub
+            'v2.6 2017.02.20 M.Suzuki(TSK) Add End
+        ElseIf Trim(GetParam(Pub_ParamFileName, "HayasugiCheckUmu")) = "" Then 'v2.8 2017.03.30 M.Suzuki(TSK) Add Start
+            Me.Close()
+            Exit Sub
+        ElseIf Trim(GetParam(Pub_ParamFileName, "TokyuCheckUmu")) = "" Then
+            Me.Close()
+            Exit Sub
+        ElseIf Trim(GetParam(Pub_ParamFileName, "TankaCheckUmu")) = "" Then
+            Me.Close()
+            Exit Sub
+            'v2.8 2017.03.30 M.Suzuki(TSK) Add End
+        ElseIf Trim(GetParam(Pub_ParamFileName, "CSVOutput")) = "" Then 'v209 2017.04.17 M.Suzuki(TSK) Add Start
+            Me.Close()
+            Exit Sub
+        ElseIf Trim(GetParam(Pub_ParamFileName, "CSVOutputFolder")) = "" Then
+            Me.Close()
+            Exit Sub
+        End If 'v209 2017.04.17 M.Suzuki(TSK) Add End
+
+        'DB環境設定ファイルの組立
+        Pub_DBConStr = " Provider=SQLOLEDB.1;" & _
+                     " Persist Security Info=False;" & _
+                     " User ID=" & Trim(GetParam(Pub_ParamFileName, "ID")) & ";" & _
+                     " Password=" & Strings.StrReverse(Trim(GetParam(Pub_ParamFileName, "PASS"))) & ";" & _
+                     " Initial Catalog=BaanRep;" & _
+                     " Data Source=" & Trim(GetParam(Pub_ParamFileName, "SVName"))
+
+        'v2.6 2017.02.20 M.Suzuki(TSK) Add Start
+        Pub_BaanDBConStr = "Provider=OraOLEDB.Oracle.1;" & _
+                                              "Password=" & BaanSVPass & ";" & _
+                                              "User ID=" & BaanSVUser & ";" & _
+                                              "Data Source=" & Trim(GetParam(Pub_ParamFileName, "sBaanSVName")) & ";" & _
+                                              "Persist Security Info=True"
+        'v2.6 2017.02.20 M.Suzuki(TSK) Add End
+
+        ''バージョンチェック
+        'objDB = New ADODB.Connection
+        'objDB.ConnectionString = "Provider=SQLOLEDB.1;" & _
+        '                 "Persist Security Info=False;" & _
+        '                 "User ID=" & GetParam(Pub_ParamFileName, "VerID") & ";" & _
+        '                 "Password=" & Strings.StrReverse(GetParam(Pub_ParamFileName, "VerPASS")) & ";" & _
+        '                 "Initial Catalog=Isd;" & _
+        '                 "Data Source=" & GetParam(Pub_ParamFileName, "VerSVName")
+
+
+        'objDB.ConnectionTimeout = 30
+        'objDB.CommandTimeout = 60
+        'objDB.Open()
+        'str_SQL = "SELECT ToolVer " & _
+        '       "FROM   IsdToolMaster " & _
+        '       "WHERE  ToolName = N'発注システム'"
+        'Rs = objDB.Execute(str_SQL)
+
+        'If (Rs.EOF = True And Rs.BOF = True) Then
+        '    'レコードが見つからない
+        '    bln_Ver = False
+        'ElseIf IsDBNull(Rs.Fields("ToolVer").Value) = True Then
+        '    'データがNULL
+        '    bln_Ver = False
+        'ElseIf Trim(Rs.Fields("ToolVer").Value) = My.Application.Info.Version.ToString Then
+        '    'バージョンが一緒だった
+        '    bln_Ver = False
+        'ElseIf Trim(Rs.Fields("ToolVer").Value) > My.Application.Info.Version.ToString Then
+        '    'バージョンが違う
+        '    bln_Ver = True
+        'Else
+        '    'ここにきたら未知の不具合
+        '    bln_Ver = False
+        'End If
+
+        'If bln_Ver = True Then
+        '    MsgBox("現在のバージョンよりも最新のバージョンが存在します。" & vbCrLf & _
+        '           "情報システムダウンロードページで最新バージョンを確認ください。", _
+        '           vbOKOnly)
+        '    Me.Close()
+        '    Exit Sub
+        'End If
+
+        Dim toolVerCheck = New ToolVersionCheck()
+        toolVerCheck.DbServerName = GetParam(Pub_ParamFileName, "VerSVName")
+        toolVerCheck.DbServerDbName = "Isd"
+        toolVerCheck.DbServerUser = GetParam(Pub_ParamFileName, "VerID")
+        toolVerCheck.DbServerPassword = Strings.StrReverse(GetParam(Pub_ParamFileName, "VerPASS"))
+
+        Dim verCheckErrorMessage As String = ""
+        Dim isLatestVersion As Boolean = True   '最終バージョン判定用
+        If toolVerCheck.VersionCheck(ToolID, verCheckErrorMessage, isLatestVersion) = False Then
+            'エラー用処理入れる場合、ここに記述。
+        End If
+        If isLatestVersion = False Then
+            MessageBox.Show("現在のバージョンよりも最新のバージョンが存在します。" & vbNewLine &
+                            "情報システムダウンロードページで最新バージョンを確認ください。",
+                            "ツールバージョンチェック", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Me.Close()
+            Exit Sub
+        End If
+
+
+        'デバッグ用
+        '    DBConStr = "Provider=SQLOLEDB.1;" & _
+        '               "Persist Security Info=False;" & _
+        '               "User ID=sa;" & _
+        '               "Password=mngmacman;" & _
+        '               "Initial Catalog=BaanRep;" & _
+        '               "Data Source=" & SysPrm.SVName
+
+        'コンピュータ名の取得
+        Pub_PCname = System.Environment.MachineName
+        'ユーザー名の取得
+        Pub_UserName = System.Environment.UserName
+
+        'DataGridViewのヘッダ作成
+        Call InitGrid()
+
+        '早過ぎチェック・閾値、特急品チェック・閾値、単価チェックの初期値をセット
+        'v2.8 2017.03.30 M.Suzuki(TSK) ******************************************** Add Start
+        Me.chkHayasugi.Checked = Trim(GetParam(Pub_ParamFileName, "HayasugiCheckUmu"))
+        Me.chkMaedaoshi.Checked = Trim(GetParam(Pub_ParamFileName, "TokyuCheckUmu"))
+        Me.txtMaedaoshi.Text = Trim(GetParam(Pub_ParamFileName, "TokyuIkiti"))
+        Me.chkTanka.Checked = Trim(GetParam(Pub_ParamFileName, "TankaCheckUmu"))
+        'v2.8 2017.03.30 M.Suzuki(TSK) ******************************************** Add End
+        'v209 2017.04.17 M.Suzuki(TSK) ******************************************** Add End
+        Me.chkCsvOutput.Checked = Trim(GetParam(Pub_ParamFileName, "CSVOutput"))
+        'v209 2017.04.17 M.Suzuki(TSK) ******************************************** Add End
+
+
+        ''2019/05/06 テストコード（全削除ボタンのテストのため、空データをグリッドに追加する）
+        'Dim dgvIndex As Integer
+        'For i = 0 To 10
+        '    DGV.Rows.Add()
+        '    dgvIndex = DGV.Rows.Count - 1
+        '    DGV.Rows(dgvIndex).Cells(0).Value = "1"
+        '    DGV.Rows(dgvIndex).Cells(1).Value = "2"
+        'Next
+
+        '念のためコードからもボタンの初期有効・無効を設定する。
+        cmdDel.Enabled = False
+        cmdAllCl.Enabled = False
+        cmdOrder.Enabled = False
+        cmdExit.Enabled = True
+
+    End Sub
+
+
+    '************************************************************
+    '*バーコード手入力ボタン押下処理
+    '************************************************************
+    Private Sub button_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) _
+                             Handles cmbManIn0.Click, cmbManIn1.Click, cmbManIn2.Click, cmbManIn3.Click, cmbManIn4.Click,
+                                     cmbManIn5.Click, cmbManIn6.Click, cmbManIn7.Click, cmbManIn8.Click,
+                                     cmbManIn9.Click, cmbManIn10.Click, cmbManIn11.Click, cmbManIn12.Click
+
+        Dim btn As Button
+
+        btn = CType(sender, Button)
+
+        Select Case btn.Tag.ToString
+            Case "0"
+                txtBarCode.Text = txtBarCode.Text & "EA"
+            Case "1"
+                txtBarCode.Text = txtBarCode.Text & "0"
+            Case "2"
+                txtBarCode.Text = txtBarCode.Text & "1"
+            Case "3"
+                txtBarCode.Text = txtBarCode.Text & "2"
+            Case "4"
+                txtBarCode.Text = txtBarCode.Text & "3"
+            Case "5"
+                txtBarCode.Text = txtBarCode.Text & "4"
+            Case "6"
+                txtBarCode.Text = txtBarCode.Text & "5"
+            Case "7"
+                txtBarCode.Text = txtBarCode.Text & "6"
+            Case "8"
+                txtBarCode.Text = txtBarCode.Text & "7"
+            Case "9"
+                txtBarCode.Text = txtBarCode.Text & "8"
+            Case "10"
+                txtBarCode.Text = txtBarCode.Text & "9"
+            Case "11"      'BSボタン"
+                If Len(txtBarCode.Text) > 0 Then
+                    txtBarCode.Text = Mid(txtBarCode.Text, 1, Len(txtBarCode.Text) - 1)
+
+                End If
+            Case "12"      'CLボタン
+                txtBarCode.Text = ""
+        End Select
+
+    End Sub
+
+    '******************************************************************
+    '消去ボタン押下時処理
+    '******************************************************************
+    Private Sub cmdDel_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cmdDel.Click
+
+        Dim dgv_Row As DataGridViewRow
+
+        '選択されているグリッドの行を削除する
+        For Each dgv_Row In DGV.SelectedRows
+            If dgv_Row.IsNewRow = False Then
+                DGV.Rows.Remove(dgv_Row)
+            End If
+        Next
+
+        '削除の結果、明細がなくなったときの処理
+        If Me.DGV.Rows.Count < 1 Then
+            'ボタンの無効化
+            cmdDel.Enabled = False
+            cmdAllCl.Enabled = False
+            cmdOrder.Enabled = False
+            '発注/発注取消フレームを有効化
+            Frame3.Enabled = True
+            OptOrder0.Enabled = True
+            OptOrder1.Enabled = True
+
+        End If
+
+        txtBarCode.Focus()
+    End Sub
+
+    '******************************************************************
+    '*全消去ボタン押下時処理
+    '******************************************************************
+    Private Sub cmdAllCl_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cmdAllCl.Click
+        Dim ret As Long
+        Dim i As Long
+
+        ret = MsgBox("全て消去してよろしいですか？(Y/N)", vbYesNo)
+        If ret = vbYes Then
+            'グリッドの内容クリア
+            'For i = 0 To DGV.Rows.Count - 1
+            '    DGV.Rows.RemoveAt(i)
+            'Next
+            'v2.32 修正
+            For i = DGV.Rows.Count - 1 To 0 Step -1
+                DGV.Rows.RemoveAt(i)
+            Next
+
+            'ボタンの無効化
+            cmdDel.Enabled = False
+            cmdAllCl.Enabled = False
+            cmdOrder.Enabled = False
+            '発注/発注取消フレームを有効化
+            Frame3.Enabled = True
+            OptOrder0.Enabled = True
+            OptOrder1.Enabled = True
+
+        End If
+        txtBarCode.Focus()
+
+    End Sub
+
+    '******************************************************************
+    '*発注ボタン押下時処理
+    '******************************************************************
+    Private Sub cmdOrder_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cmdOrder.Click
+
+        Dim DBCon As New ADODB.Connection
+        Dim rs As ADODB.Recordset
+        'Dim rs2 As ADODB.Recordset          'v2.3 2016.03.15 K.Nakano Add
+        Dim adoRsStartDateProcEmergency As ADODB.Recordset  'v240 追加
+        Dim adoRsSlipProcessLog As ADODB.Recordset  'v240 追加
+        Dim adoRsErrorHistory As ADODB.Recordset    'v240 追加
+
+        Dim strSQL As String
+        Dim dgvCurrRow As Long
+        'Dim j As Long
+        Dim dtNow As DateTime
+        Dim sDay As String
+        Dim sTm As String
+        Dim sOrder As String
+        Dim sProNo As String                'v2.3 2016.03.15 K.Nakano Add
+        Dim sProSrchCond As String
+        Dim sProSrchCond2 As String
+        'Dim s() As String
+        Dim sErr As String = ""
+        Dim lErr As Long
+        Dim RsltFileForm() As KanseiRsltFileForm
+        Dim RsltFileFormNo As Long
+        Dim lRet As Long
+        'Dim FName As String
+        Dim bIdo As Boolean
+
+        Dim lngCsvData() As Long            'v209 2017.04.17 M.Suzuki Add
+        Dim lngCsvDataCnt As Long           'v209 2017.04.17 M.Suzuki Add
+        Dim strOutputFolder As String       'v209 2017.04.17 M.Suzuki Add
+        Dim strFileName As String           'v209 2017.04.17 M.Suzuki Add
+        Dim strResult As New System.Text.StringBuilder 'v209 2017.04.17 M.Suzuki Add
+
+        'ORPMS.dbo.MainDBへ発注データをインサート
+        On Error Resume Next
+
+        Me.Cursor = Cursors.WaitCursor
+
+        dtNow = Now
+        sDay = Format(dtNow, "yyyy/MM/dd")
+        sTm = Format(dtNow, "HH:mm:ss")
+
+        RsltFileFormNo = 0
+        ReDim RsltFileForm(0)
+
+        DBCon.ConnectionString = Pub_DBConStr
+        DBCon.CommandTimeout = 600
+        DBCon.Open()
+
+        'v209 2017.04.17 M.Suzuki(TSK) ******************************************** Add Start
+        lngCsvDataCnt = 0
+        ReDim lngCsvData(lngCsvDataCnt)
+        'v209 2017.04.17 M.Suzuki(TSK) ******************************************** Add End
+
+        For dgvCurrRow = 0 To DGV.RowCount - 1
+
+            lErr = 0    'エラー判定用変数を初期化（行ごとに判定するため）
+            sOrder = DGV.Rows(dgvCurrRow).Cells(ColOrder).Value.ToString
+
+            If InStr(DGV.Rows(dgvCurrRow).Cells(ColProcess).Value, "-") <> 0 Then
+                '工程の開始終了を分割する　例：10 - 30  --->  s(0)="10", s(1)="-", s(2)="30"
+                Dim s() As String
+                s = Split(DGV.Rows(dgvCurrRow).Cells(ColProcess).Value, " ")
+                sProSrchCond = " (A.ProcessNo BETWEEN " & s(0) & " AND " & s(2) & ") "
+                sProSrchCond2 = " (ProcessNo BETWEEN " & s(0) & " AND " & s(2) & ") "
+                sProNo = s(2)                                                               'v2.3 2016.03.15 K.Nakano Add
+            Else
+                sProSrchCond = " (A.ProcessNo = " & DGV.Rows(dgvCurrRow).Cells(ColProcess).Value & ") "
+                sProSrchCond2 = " (ProcessNo = " & DGV.Rows(dgvCurrRow).Cells(ColProcess).Value & ") "
+                sProNo = DGV.Rows(dgvCurrRow).Cells(ColProcess).Value                                                             'v2.3 2016.03.15 K.Nakano Add
+            End If
+
+            If OptOrder0.Checked = True Then    '発注の場合
+                DBCon.BeginTrans()
+                '処理速度向上のため、RecalBaanProcPlanは、使わない。 2006/02/21 Takeshi.Asano
+                strSQL = "INSERT INTO ORPMS.dbo.MainDB " &
+                         "            (OrderNo, ProjectNo, PartsNo, PartsName, " &
+                         "             ProcessNo, TaskNo, PlanPcs, WorkCenter, " &
+                         "             RequPlanFinDate, IniPlanFinDate, RecalDeadLineDate, IniDeadLineDate, " &
+                         "             CategoryFlag, Ordered, OrderDate, OrderTm, ClPCName,Warehouse, " &
+                         "             MAXProWC " &
+                         "            ) "
+                strSQL = strSQL &
+                         "SELECT      A.OrderNo, B.ProjectNo, " &
+                         "            B.PartsNo, '" & DGV.Rows(dgvCurrRow).Cells(ColPartsName).Value & "' AS PartsName," &
+                         "            A.ProcessNo, A.Task AS TaskNo, " &
+                         "            A.PlanPcs, A.WorkCenter, " &
+                         "            A.PlanFinDate AS RequPlanFinDate, A.PlanFinDate AS IniPlanFinDate, " &
+                         "            A.PlanFinDate AS ReCalDeadlineDate, A.PlanFinDate AS IniDeadlineDate, " &
+                         "            0 AS CategoryFlag, 1 AS Ordered," &
+                         "            '" & sDay & "' AS OrderDate, " &
+                         "            '" & sTm & "' AS OrderTm, " &
+                         "            '" & Pub_PCname & "' AS ClPCName, " &
+                         "            B.Warehouse, " &
+                         "            C.WorkCenter AS MAXProWorkCenter " &
+                         "FROM        BaanProcPlan A " &
+                         "INNER JOIN  BaanOrderData B ON A.OrderNo = B.OrderNo " &
+                         "CROSS JOIN  " &
+                         "            (" &
+                         "             SELECT  TOP 1 WorkCenter " &
+                         "             FROM          BaanProcPlan" &
+                         "             WHERE         OrderNo = " & sOrder & " " &
+                         "             ORDER BY      ProcessNo DESC " &
+                         "            ) C " &
+                         "WHERE       A.OrderNo = " & sOrder & " " &
+                         "AND        " & sProSrchCond &
+                         "ORDER BY    ProcessNo "
+
+                rs = DBCon.Execute(strSQL)
+                'sErr = Err.Description
+                'sErr = "GridRow：" & dgvCurrRow & " - " & "【INSERT INTO ORPMS.dbo.MainDB～】" & Err.Description
+                'lErr = Err.Number
+                If Err.Number <> 0 Then
+                    sErr = "GridRow：" & dgvCurrRow & " - " & "【INSERT INTO ORPMS.dbo.MainDB～】" & Err.Description
+                    lErr = Err.Number
+                End If
+
+                '作業完了実績ファイル用データ作成
+                If lErr = 0 Then
+                    strSQL = "SELECT      A.OrderNo, " &
+                             "            A.ProcessNo, A.TaskNo, A.PlanPcs, A.WorkCenter " &
+                             "FROM        ORPMS.dbo.MainDB A " &
+                             "WHERE       A.OrderNo = " & sOrder & " " &
+                             "AND        " & sProSrchCond &
+                             "AND         Closed = 0 " &
+                             "ORDER BY    A.ProcessNo "
+                    rs = DBCon.Execute(strSQL)
+                    'sErr = Err.Description
+                    If Err.Number <> 0 Then
+                        sErr = "GridRow：" & dgvCurrRow & " - " & "【作業完了実績ファイル用データ作成～】" & Err.Description
+                        lErr = Err.Number
+                    End If
+
+                    If lErr = 0 And rs.BOF = False Then
+                        bIdo = False
+                        Do While Not rs.EOF
+                            '                            If rs("TaskNo") = 9000 Or rs("TaskNo") = 19980 Then
+                            '                            If rs("TaskNo") = 9000 Then
+                            '移動工程
+                            If rs.Fields("TaskNo").Value = 9000 Or rs.Fields("TaskNo").Value = 20010 Then     'OTEC対応
+                                RsltFileFormNo = RsltFileFormNo + 1
+                                ReDim Preserve RsltFileForm(RsltFileFormNo)
+                                RsltFileForm(RsltFileFormNo).Order = rs.Fields("OrderNo").Value
+                                RsltFileForm(RsltFileFormNo).ProcessNo = rs.Fields("ProcessNo").Value
+                                RsltFileForm(RsltFileFormNo).OKCnt = rs.Fields("PlanPcs").Value
+                                RsltFileForm(RsltFileFormNo).NGCnt = 0
+                                RsltFileForm(RsltFileFormNo).Sts = 1
+                                bIdo = True
+                            End If
+                            rs.MoveNext()
+                        Loop
+                        '完了フラグ、完了日、完了時刻をアップデートする。
+                        '（移動工程、材料待ち工程の場合）
+                        If bIdo = True Then
+                            strSQL = "UPDATE  ORPMS.dbo.MainDB " &
+                                     "SET     Fined = 1, " &
+                                     "        FinDate ='" & sDay & "', " &
+                                     "        FinTm = '" & sTm & "' " &
+                                     "WHERE   OrderNo = " & RsltFileForm(RsltFileFormNo).Order & " " &
+                                     "AND     ProcessNo = " & RsltFileForm(RsltFileFormNo).ProcessNo & " " &
+                                     "AND     Closed = 0 "
+                            rs = DBCon.Execute(strSQL)
+                            'sErr = Err.Description
+                            If Err.Number <> 0 Then
+                                sErr = "GridRow：" & dgvCurrRow & " - " & "【完了フラグ、完了日、完了時刻をアップデートする・・・】" & Err.Description
+                                lErr = Err.Number
+                            End If
+
+                        End If
+                        If lErr = 0 Then
+                            'v2.3 2016.03.15 K.Nakano(TSK) *************************************************** Add Start
+                            strSQL = "SELECT a.orno orno, a.opfm opfm, a.opto opto, a.cwoc cwoc, a.item item, a.emrg emrg, a.odwt odwt " &
+                                     " FROM  ORPMS.dbo.StartDateProcEmergency AS a " &
+                                     " WHERE a.orno = " & CLng(sOrder) & " " &
+                                     " AND   a.opto = " & CLng(sProNo) & " "
+                            'rs2 = DBCon.Execute(strSQL)
+                            'If rs2.EOF = False Then
+                            '    '発注待ちﾌﾗｸﾞ判定
+                            '    If rs2.Fields("odwt").Value = 1 Then
+                            '        '更新(odwt=0⇒1) ------------------------------------------------------------------------------
+                            '        strSQL = "UPDATE ORPMS.dbo.StartDateProcEmergency SET " &
+                            '                 "odwt = 0, " &
+                            '                 "redt = '" & sDay & " " & sTm & "' " &
+                            '                 "WHERE orno = " & CLng(sOrder) & " " &
+                            '                 "AND   opto = " & CLng(sProNo) & " "
+                            '        DBCon.Execute(strSQL)
+                            '        '----------------------------------------------------------------------------------------------
+
+                            '        'sErr = sErr & "/" & Err.Description
+                            '        If Err.Number <> 0 Then
+                            '            sErr = AddErrorMessage(sErr, "[発注待ちﾌﾗｸﾞ判定]" & Err.Description)  'エラー情報を追加して設定
+                            '            lErr = Err.Number
+                            '        End If
+
+                            '    End If
+                            '    rs2.Close() 'v240
+                            'End If
+                            'rs2.Close()
+                            'v2.3 2016.03.15 K.Nakano(TSK) *************************************************** Add End
+
+                            adoRsStartDateProcEmergency = DBCon.Execute(strSQL)
+                            If adoRsStartDateProcEmergency.EOF = False Then
+                                '発注待ちﾌﾗｸﾞ判定
+                                If adoRsStartDateProcEmergency.Fields("odwt").Value = 1 Then
+                                    Dim sql As String = ""
+                                    sql += "UPDATE ORPMS.dbo.StartDateProcEmergency SET "
+                                    sql += " odwt = 0, "
+                                    sql += " redt = '" & sDay & " " & sTm & "' "
+                                    sql += "WHERE orno = " & CLng(sOrder) & " "
+                                    sql += "AND   opto = " & CLng(sProNo) & " "
+
+                                    'adoRsStartDateProcEmergency.Close()
+                                    DBCon.Execute(sql)
+
+                                    If Err.Number <> 0 Then
+                                        sErr = AddErrorMessage(sErr, "[発注待ちﾌﾗｸﾞ判定]" & Err.Description)  'エラー情報を追加して設定
+                                        lErr = Err.Number
+                                    End If
+                                End If
+                                adoRsStartDateProcEmergency.Close()
+
+                            End If
+
+                            'v2.4 2016.04.12 M.Suzuki(TSK) *************************************************** Add Start
+                            '伝票処理ログテーブルの確定フラグの確定
+                            strSQL = "Select prdt, prtm, orno, opno, prfg"
+                            strSQL = strSQL & " ,emrg, jgfg, cnfg, cmnm"
+                            strSQL = strSQL & " From ORPMS.dbo.SlipProcessLog"
+                            strSQL = strSQL & " Where orno = " & CLng(sOrder)
+                            strSQL = strSQL & " And   opno = " & CLng(sProNo)
+                            strSQL = strSQL & " And   prdt = '" & sDay & "'"
+                            strSQL = strSQL & " And   prfg = 1" '処理フラグ=prfg(発注)のもの
+                            strSQL = strSQL & " And   cnfg = 0" '確定フラグ=Noのもの
+                            strSQL = strSQL & " Order by prtm desc"
+                            'rs2 = DBCon.Execute(strSQL)
+                            'If rs2.EOF = False Then
+                            '    strSQL = "UPDATE ORPMS.dbo.SlipProcessLog SET "
+                            '    strSQL = strSQL & "cnfg = 1 "
+                            '    strSQL = strSQL & "WHERE orno = " & CLng(sOrder) & " "
+                            '    strSQL = strSQL & "AND   opno = " & CLng(sProNo) & " "
+                            '    strSQL = strSQL & "AND   prtm = '" & rs2.Fields("prtm").Value & "' "
+
+                            '    rs2.Close() 'v240 - ここでクローズしないとエラー出る
+                            '    DBCon.Execute(strSQL)
+
+                            '    'sErr = sErr & "/" & Err.Description 'エラー情報を追加して設定
+                            '    If Err.Number <> 0 Then
+                            '        sErr = AddErrorMessage(sErr, "[伝票処理ログテーブルの確定フラグの確定]" & Err.Description)  'エラー情報を追加して設定
+                            '        lErr = Err.Number
+                            '    End If
+
+                            'End If
+                            'v2.4 2016.04.12 M.Suzuki(TSK) *************************************************** Add End
+
+                            adoRsSlipProcessLog = DBCon.Execute(strSQL)
+                            If adoRsSlipProcessLog.EOF = False Then
+                                Dim sql As String = ""
+                                sql += "UPDATE ORPMS.dbo.SlipProcessLog SET "
+                                sql += " cnfg = 1 "
+                                sql += "WHERE orno = " & CLng(sOrder) & " "
+                                sql += "AND   opno = " & CLng(sProNo) & " "
+                                sql += "AND   prtm = '" & adoRsSlipProcessLog.Fields("prtm").Value & "' "
+
+                                adoRsSlipProcessLog.Close() 'v240 - ここでクローズしないとエラー出る
+                                DBCon.Execute(sql)
+
+                                If Err.Number <> 0 Then
+                                    sErr = AddErrorMessage(sErr, "[伝票処理ログテーブルの確定フラグの確定]" & Err.Description)  'エラー情報を追加して設定
+                                    lErr = Err.Number
+                                End If
+                            End If
+
+                            'v2.8 2017.03.30 M.Suzuki(TSK) *************************************************** Add Start
+                            'エラー履歴テーブルの発注フラグの確定
+                            strSQL = "Select "
+                            strSQL = strSQL & " crdt, crtm, orno, opno, errg" & vbCrLf
+                            strSQL = strSQL & ",fydt, emrg, ordf, bepr, pric" & vbCrLf
+                            strSQL = strSQL & " From ORPMS.dbo.ErrorHistory"
+                            strSQL = strSQL & " Where orno = " & CLng(sOrder)
+                            strSQL = strSQL & " And   opno = " & CLng(sProNo)
+                            strSQL = strSQL & " And   convert(varchar,crdt,111) = '" & sDay & "'"
+                            strSQL = strSQL & " And   ordf = 0" '発注フラグ = No
+
+                            'rs2 = DBCon.Execute(strSQL)
+                            'If rs2.EOF = False Then
+                            '    strSQL = "UPDATE ORPMS.dbo.ErrorHistory SET "
+                            '    strSQL = strSQL & "ordf = 1 "
+                            '    strSQL = strSQL & "WHERE orno = " & CLng(sOrder) & " "
+                            '    strSQL = strSQL & "AND   opno = " & CLng(sProNo) & " "
+                            '    strSQL = strSQL & "AND   convert(varchar,crdt,111) = '" & sDay & "'"
+
+                            '    rs2.Close() 'v240 - ここでクローズしないとエラー出る
+                            '    DBCon.Execute(strSQL)
+
+                            '    'sErr = sErr & "/" & Err.Description 'エラー情報を追加して設定
+                            '    If Err.Number <> 0 Then
+                            '        sErr = AddErrorMessage(sErr, "[エラー履歴テーブルの発注フラグの確定]" & Err.Description)  'エラー情報を追加して設定
+                            '        lErr = Err.Number
+                            '    End If
+                            'End If
+                            'v2.8 2017.03.30 M.Suzuki(TSK) *************************************************** Add End
+
+                            adoRsErrorHistory = DBCon.Execute(strSQL)
+                            If adoRsErrorHistory.EOF = False Then
+                                Dim sql As String = ""
+                                sql += "UPDATE ORPMS.dbo.ErrorHistory SET "
+                                sql += " ordf = 1 "
+                                sql += "WHERE orno = " & CLng(sOrder) & " "
+                                sql += "AND   opno = " & CLng(sProNo) & " "
+                                sql += "AND   convert(varchar,crdt,111) = '" & sDay & "'"
+
+                                adoRsErrorHistory.Close()   'v240 - ここでクローズしないとエラー出る
+                                DBCon.Execute(sql)
+
+                                If Err.Number <> 0 Then
+                                    sErr = AddErrorMessage(sErr, "[エラー履歴テーブルの発注フラグの確定]" & Err.Description)  'エラー情報を追加して設定
+                                    lErr = Err.Number
+                                End If
+                            End If
+
+
+                            DBCon.CommitTrans()
+                            'NextProcessFlagをアップデートする
+                            strSQL = "Exec [ORPMS].[dbo].[sp_NextProcessFlagSet_OneOrder] @iOrder = " & sOrder
+                            rs = DBCon.Execute(strSQL)
+                            rs.Close()
+
+                            'sErr = sErr & "/" & Err.Description 'エラー情報を追加して設定
+                            If Err.Number <> 0 Then
+                                sErr = AddErrorMessage(sErr, "[NextProcessFlagをアップデートする]" & Err.Description)  'エラー情報を追加して設定
+                                lErr = Err.Number
+                            End If
+
+                            'v209 2017.04.17 M.Suzuki(TSK) ******************************************** Add Start
+                            ReDim Preserve lngCsvData(lngCsvDataCnt)
+                            lngCsvData(lngCsvDataCnt) = CLng(sOrder)
+                            lngCsvDataCnt = lngCsvDataCnt + 1
+                            'v209 2017.04.17 M.Suzuki(TSK) ******************************************** Add End
+                        Else
+                            DBCon.RollbackTrans()
+                        End If
+                    Else
+                        DBCon.RollbackTrans()
+                    End If
+                Else
+                    DBCon.RollbackTrans()
+                End If
+            Else
+                '発注取消の場合
+
+                '削除履歴にコピー
+                DBCon.BeginTrans()
+                strSQL = "INSERT INTO ORPMS.dbo.DelHist " &
+                         "            (OrderNo, ProjectNo, PartsNo, PartsName, " &
+                         "             ProcessNo, TaskNo, PlanPcs, WorkCenter, " &
+                         "             RequPlanFinDate, IniPlanFinDate, RecalDeadLineDate, IniDeadLineDate, " &
+                         "             CategoryFlag, Ordered, OrderDate, OrderTm, ClPCName, " &
+                         "             DelDate,DelTm, WareHouse, MAXProWC " &
+                         "            ) " &
+                         "SELECT      OrderNo, ProjectNo, PartsNo, PartsName, " &
+                         "            ProcessNo, TaskNo, PlanPcs, WorkCenter, " &
+                         "            RequPlanFinDate, IniPlanFinDate, ReCalDeadlineDate, IniDeadlineDate, " &
+                         "            CategoryFlag, Ordered, OrderDate, OrderTm, " & "'" & Pub_PCname & "', " &
+                         "            '" & sDay & "', '" & sTm & "', WareHouse, MAXProWC " &
+                         "FROM        ORPMS.dbo.MainDB " &
+                         "WHERE       OrderNo = " & sOrder & " " &
+                         "AND        " & sProSrchCond2 &
+                         "ORDER BY    ProcessNo "
+                rs = DBCon.Execute(strSQL)
+                If Err.Number <> 0 Then
+                    DBCon.RollbackTrans()
+
+                    sErr = "【削除履歴にコピーのエラー1】" & Err.Description
+                    lErr = Err.Number
+                Else
+                    strSQL = "DELETE FROM ORPMS.dbo.MainDB " &
+                             "WHERE       OrderNo = " & sOrder & " " &
+                             "AND        " & sProSrchCond2
+                    rs = DBCon.Execute(strSQL)
+                    If Err.Number <> 0 Then
+                        DBCon.RollbackTrans()
+
+                        sErr = "【削除履歴にコピーのエラー2】" & Err.Description
+                        lErr = Err.Number
+                    Else
+                        DBCon.CommitTrans()
+                    End If
+                End If
+                'sErr = Err.Description
+                'lErr = Err.Number
+            End If
+
+            DGV.Rows(dgvCurrRow).Cells(ColTranRsltDetail).Value = sErr
+            If lErr = 0 Then
+                DGV.Rows(dgvCurrRow).Cells(ColTranRslt).Value = "成功"
+            Else
+                DGV.Rows(dgvCurrRow).Cells(ColTranRslt).Value = "失敗"
+            End If
+        Next
+
+        'v209 2017.04.17 M.Suzuki(TSK) ******************************************** Add Start
+        'CSV出力
+        If Me.chkCsvOutput.Checked = True Then
+            For lngCsvDataCnt = LBound(lngCsvData) To UBound(lngCsvData)
+                strResult.Append(lngCsvData(lngCsvDataCnt) & vbCrLf)
+            Next lngCsvDataCnt
+            'ファイル名を保存ダイアログで指定した値に設定します。
+            strOutputFolder = Trim(GetParam(Pub_ParamFileName, "CSVOutputFolder")) & "\"
+            strFileName = Format(Now, "yyyyMMdd_HHmmss") & "_" & System.Environment.MachineName & "_OrderingSystem.csv"
+
+            'Shift-JISで保存します。
+            Dim swText As New System.IO.StreamWriter(strOutputFolder & strFileName,
+                                                    False, System.Text.Encoding.GetEncoding(932))
+            swText.Write(strResult.ToString)
+            swText.Dispose()
+        End If
+        'v209 2017.04.17 M.Suzuki(TSK) ******************************************** Add End
+
+        Dim workCompletionResultFile As String = ""    '作業完了実績ファイル名
+        '作業完了ファイルの作成&アップロード
+        If RsltFileFormNo > 0 And OptOrder0.Checked = True Then
+            workCompletionResultFile = Pub_PCname & "-" & Format(dtNow, "yyyyMMdd") & "-" & Format(dtNow, "HHmmss")
+            lRet = MakeKanseiFile(RsltFileForm, workCompletionResultFile, sErr)
+            If lRet > 0 Then
+                Me.Cursor = Cursors.Default
+                MsgBox("作業完了実績ﾌｧｲﾙの作成に失敗しました。" & vbCrLf &
+                       "詳細：" & sErr & vbCrLf &
+                       "移動工程を手動で完了して下さい。",
+                       vbOKOnly)
+                lRet = WriteKanseiLog(RsltFileForm, workCompletionResultFile, lRet, sErr)
+            Else
+                '中間ｻｰﾊﾞへのアップロード
+                lRet = Fnc_FTPUpdata(My.Application.Info.DirectoryPath & "\" & workCompletionResultFile,
+                                     Trim(GetParam(Pub_ParamFileName, "ftpUpDir")) & "/" & workCompletionResultFile, sErr)    'DEBUGでコメントアウト
+                If lRet > 0 Then
+                    Me.Cursor = Cursors.Default
+                    MsgBox("作業完了実績ﾌｧｲﾙのｱｯﾌﾟﾛｰﾄﾞに失敗しました。" & vbCrLf &
+                           "詳細：" & sErr & vbCrLf &
+                           "移動工程を手動で完了して下さい。",
+                           vbOKOnly)
+                End If
+                'ログに書き込み
+                lRet = WriteKanseiLog(RsltFileForm, workCompletionResultFile, lRet, sErr)
+
+                ''ﾌｧｲﾙの移動
+                'If IO.Directory.Exists(My.Application.Info.DirectoryPath & "\BackUp") = False Then
+                '    IO.Directory.CreateDirectory(My.Application.Info.DirectoryPath & "\BackUp")
+                'End If
+                'IO.File.Move(My.Application.Info.DirectoryPath & "\" & FName, _
+                '             My.Application.Info.DirectoryPath & "\BackUp\" & FName)
+                'If Err.Number > 0 Then
+                '    Me.Cursor = Cursors.WaitCursor
+                '    MsgBox("作業完了実績ﾌｧｲﾙの移動に失敗しました。" & vbCrLf & "詳細：" & Err.Description, vbOKOnly)
+                'End If
+
+                'ファイルの移動（バックアップ）
+                If MoveWorkCompletionResultFile(workCompletionResultFile) = False Then
+                    '何かエラー対応処理あれば入れる
+                End If
+
+                Me.Cursor = Cursors.WaitCursor
+
+            End If
+        End If
+
+        cmdDel.Enabled = False
+        cmdAllCl.Enabled = False
+        cmdOrder.Enabled = False
+
+        '発注/発注取消フレームを有効化
+        Frame3.Enabled = True
+        OptOrder0.Enabled = True
+        OptOrder1.Enabled = True
+
+        rs.Close()
+        DBCon.Close()
+        rs = Nothing
+        DBCon = Nothing
+        Me.Cursor = Cursors.Default
+    End Sub
+
+    ''' <summary>
+    ''' 作業完了実績ファイルをバックアップフォルダへ移動する
+    ''' </summary>
+    ''' <param name="workCompletionResultFile"></param>
+    ''' <returns></returns>
+    Private Function MoveWorkCompletionResultFile(ByVal workCompletionResultFile As String) As Boolean
+        Try
+            If IO.Directory.Exists(My.Application.Info.DirectoryPath & "\BackUp") = False Then
+                IO.Directory.CreateDirectory(My.Application.Info.DirectoryPath & "\BackUp")
+            End If
+
+            IO.File.Move(My.Application.Info.DirectoryPath & "\" & workCompletionResultFile,
+                             My.Application.Info.DirectoryPath & "\BackUp\" & workCompletionResultFile)
+
+            Return True
+        Catch ex As Exception
+            MessageBox.Show("作業完了実績ﾌｧｲﾙの移動に失敗しました。" & vbNewLine &
+                            "【詳細】" & vbNewLine &
+                            ex.Message, "作業完了実績ファイルバックアップエラー", MessageBoxButtons.OK, MessageBoxIcon.Error)
+
+            Return False
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' グリッドに表示するエラーメッセージを追加する。
+    ''' </summary>
+    ''' <param name="baseMessage">現在のメッセージ</param>
+    ''' <param name="addMessage">追加するメッセージ</param>
+    ''' <returns>表示するメッセージ</returns>
+    Private Function AddErrorMessage(ByVal baseMessage As String, ByVal addMessage As String) As String
+        If baseMessage.Trim() = "" Then
+            Return addMessage
+        Else
+            Return baseMessage.Trim() & "/" & addMessage
+        End If
+    End Function
+
+    '******************************************************************
+    '*ＯＫボタン押下時処理
+    '******************************************************************
+    Private Sub cmdManInOK_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cmdManInOK.Click
+        Dim strOrder As String
+        Dim strProNo As String
+
+        '発注処理後だったら、グリッドをｸﾘｱする。
+        If cmdOrder.Enabled = False Then
+            DGV.Rows.Clear()
+            DGV.Columns.Clear()
+            InitGrid()
+        End If
+
+        If IsNumeric(txtBarCode.Text) = True Then
+            'ｵｰﾀﾞｰ+工順の場合
+            'ｵｰﾀﾞｰ番号と工順に分割（後方3桁が工順、それ以外の前方データがMJ）
+            strOrder = txtBarCode.Text.Substring(0, txtBarCode.TextLength - 3)
+            strProNo = txtBarCode.Text.Substring(txtBarCode.TextLength - 3)
+            '製造オーダー、工順のチェック
+            '製造オーダー８桁対応
+            '        If CLng(strOrder) > 999999 Or CLng(strOrder) < 1 Then
+            If CLng(strOrder) < 1 Then
+                MsgBox("無効な製造オーダー", vbOKOnly)
+                txtBarCode.Text = ""
+                Exit Sub
+            End If
+            If CLng(strProNo) > 999 Or CLng(strProNo) < 1 Then
+                MsgBox("無効な工順", vbOKOnly)
+                txtBarCode.Text = ""
+                Exit Sub
+            End If
+
+        Else
+            'ﾊﾞｰｺｰﾄﾞの場合
+            'ﾊﾞｰｺｰﾄﾞのチェックを行う
+            '製造オーダー８桁対応
+            strOrder = Mid(txtBarCode.Text, 3, Len(txtBarCode.Text) - 5)
+            strProNo = txtBarCode.Text.Substring(txtBarCode.TextLength - 3)
+
+            If IsNumeric(strOrder) = False Then
+                MsgBox("無効なﾊﾞｰｺｰﾄﾞ", vbOKOnly)
+                txtBarCode.Text = ""
+                Exit Sub
+            ElseIf IsNumeric(strProNo) = False Then
+                MsgBox("無効なﾊﾞｰｺｰﾄﾞ", vbOKOnly)
+                txtBarCode.Text = ""
+                Exit Sub
+            End If
+        End If
+
+        '早過ぎチェック・閾値、特急品チェック・閾値、単価チェックの値をチェック
+        'v2.8 2017.03.30 M.Suzuki(TSK) ******************************************** Add Start        
+        If Me.chkMaedaoshi.Checked = True Then
+            If Trim(txtMaedaoshi.Text) = "" Then
+                MsgBox("前倒し緊急度閾値が未指定", vbOKOnly)
+                Exit Sub
+            ElseIf IsNumeric(txtMaedaoshi.Text) = False Then
+                MsgBox("前倒し緊急度閾値は数値を指定", vbOKOnly)
+                txtMaedaoshi.Text = ""
+                Exit Sub
+            End If
+        End If
+        'v2.8 2017.03.30 M.Suzuki(TSK) ******************************************** Add End
+
+        Dim ret As Boolean
+        If OptOrder0.Checked = True Then
+            ErrCode = 0
+            ErrString = ""
+            '生産計画の再読み込みをする。
+            If chkPrdtPlanRead.Checked = True Then
+                ret = PrdtPlanRead(strOrder)
+                If ret = False Then
+                    MsgBox("生産計画の再読込失敗" & vbCrLf & "詳細：" & ErrString, vbOKOnly)
+                End If
+            End If
+            '発注操作
+            If ErrCode <> -7 Then       'オーダーのｸﾛｰｽﾞ時
+                Call DBReadAndAddGridRow(strOrder, strProNo)
+            End If
+        Else
+            '発注取消操作
+            Call DelDBReadAndAddGridRow(strOrder, strProNo)
+        End If
+
+        '発注/発注取消フレームを無効化
+        If DGV.Rows.Count > 0 Then
+            Frame3.Enabled = False
+            OptOrder0.Enabled = False
+            OptOrder1.Enabled = False
+        End If
+
+        txtBarCode.Text = ""
+        txtBarCode.Focus()
+
+    End Sub
+
+    '******************************************************************
+    '*   [機能]　DBから抽出したデータをグリッドに表示する。発注取り消し
+    '*   2014/9/18　変更　Tekeshi.Asano　OTEC対応
+    '******************************************************************
+    Private Sub DelDBReadAndAddGridRow(ByVal sOrder As String, ByVal sProNo As String)
+
+        Dim DBCon As New ADODB.Connection
+        Dim rs As ADODB.Recordset
+        Dim strSQL As String
+        Dim MinPro As String = ""
+        Dim MaxPro As String
+        Dim sOrderNo As String
+        Dim sProjectNo As String
+        Dim sPartsNo As String
+        Dim sPartsName As String
+        Dim sTaskNo As String
+        Dim sPlanPcs As String
+        Dim sWorkCenter As String
+        Dim sRequPlanFinDate As String
+        Dim sIniPlanFinDate As String
+        Dim sReCalDeadlineDate As String
+        Dim sIniDeadlineDate As String
+        ' Dim lCategoryFlag As Long
+        ' Dim lBNProgressID As Long
+        ' Dim lRet As Long
+        Dim int_idx As Long
+
+        Try
+            Me.Cursor = Cursors.WaitCursor
+
+            DBCon.ConnectionString = Pub_DBConStr
+            DBCon.CommandTimeout = 600
+            DBCon.Open()
+
+            strSQL = "SELECT          ORPMS.dbo.MainDB.OrderNo, ORPMS.dbo.MainDB.ProjectNo, ORPMS.dbo.MainDB.PartsNo, ORPMS.dbo.MainDB.PartsName, " &
+                     "                ORPMS.dbo.MainDB.ProcessNo, ORPMS.dbo.MainDB.TaskNo, ORPMS.dbo.MainDB.PlanPcs, ORPMS.dbo.MainDB.WorkCenter, " &
+                     "                ORPMS.dbo.MainDB.RequPlanFinDate, ORPMS.dbo.MainDB.IniPlanFinDate, ORPMS.dbo.MainDB.ReCalDeadlineDate, ORPMS.dbo.MainDB.IniDeadlineDate, " &
+                     "                ORPMS.dbo.MainDB.CategoryFlag, " &
+                     "                ORPMS.dbo.MainDB.Ordered AS Ordered, " &
+                     "                ORPMS.dbo.MainDB.Fined AS Fined, " &
+                     "                ORPMS.dbo.MainDB.Payed AS Payed " &
+                     "FROM            ORPMS.dbo.MainDB " &
+                     "WHERE           ORPMS.dbo.MainDB.OrderNo = " & CLng(sOrder) & " " &
+                     "AND             ORPMS.dbo.MainDB.ProcessNo <= " & CLng(sProNo) & " " &
+                     "ORDER BY        ORPMS.dbo.MainDB.ProcessNo DESC "
+            rs = DBCon.Execute(strSQL)
+
+            If rs.BOF = True Then
+                Me.Cursor = Cursors.Default
+                MsgBox("指定した製造ｵｰﾀﾞｰ/作業手順の生産計画は、見つかりませんでした。" & vbCrLf &
+                       "未発注の可能性があります。", vbOKOnly)
+                rs = Nothing
+                Exit Sub
+            End If
+
+            '発注しようとしたもののチェック
+            If IsDBNull(rs.Fields("Ordered").Value) = False Then
+                If rs.Fields("Payed").Value = 1 Then
+                    Me.Cursor = Cursors.Default
+                    MsgBox("指定した作業手順は、すでに検収済みです。", vbOKOnly)
+                    rs = Nothing
+                    Exit Sub
+                ElseIf rs.Fields("Fined").Value = 1 Then
+                    Me.Cursor = Cursors.Default
+                    MsgBox("指定した作業手順は、すでに完了済みです。", vbOKOnly)
+                    rs = Nothing
+                    Exit Sub
+                End If
+            End If
+
+            sOrderNo = rs.Fields("OrderNo").Value
+            sProjectNo = rs.Fields("ProjectNo").Value
+            sPartsNo = Trim(NullChkStr(rs.Fields("PartsNo").Value))
+            sPartsName = Trim(NullChkStr(rs.Fields("PartsName").Value))
+            sTaskNo = rs.Fields("TaskNo").Value
+            sPlanPcs = rs.Fields("PlanPcs").Value
+            sWorkCenter = Trim(NullChkStr(rs.Fields("WorkCenter").Value))
+            sRequPlanFinDate = NullChkStr(rs.Fields("RequPlanFinDate").Value)
+            sIniPlanFinDate = NullChkStr(rs.Fields("IniPlanFinDate").Value)
+            sReCalDeadlineDate = NullChkStr(rs.Fields("ReCalDeadlineDate").Value)
+            sIniDeadlineDate = NullChkStr(rs.Fields("IniDeadlineDate").Value)
+            MaxPro = rs.Fields("ProcessNo").Value
+
+            rs.MoveNext()
+            Do While Not rs.EOF
+                If (rs.Fields("WorkCenter").Value <> sWorkCenter _
+                And (rs.Fields("WorkCenter").Value <> "200000" _
+                Or rs.Fields("TaskNo").Value <> 20010)) Or
+                   (rs.Fields("Fined").Value = 1 Or rs.Fields("Payed").Value) Then
+                    '指定したワークセンターではなくかつ外作移動ワークセンターではなく、工程が完了/検収している場合
+                    Exit Do
+                End If
+                MinPro = rs.Fields("ProcessNo").Value
+                rs.MoveNext()
+            Loop
+
+            rs = Nothing
+
+            If MinPro <> "" Then
+                MaxPro = MinPro & " - " & MaxPro
+            End If
+
+            'グリッドコントロールに書く
+            DGV.Rows.Add()
+            int_idx = DGV.Rows.Count - 1
+
+            DGV.Rows(int_idx).Cells(1).Value = sOrderNo
+            DGV.Rows(int_idx).Cells(2).Value = sProjectNo
+            DGV.Rows(int_idx).Cells(3).Value = MaxPro
+            DGV.Rows(int_idx).Cells(4).Value = sPartsNo
+            DGV.Rows(int_idx).Cells(5).Value = sPartsName
+            DGV.Rows(int_idx).Cells(6).Value = sTaskNo
+            DGV.Rows(int_idx).Cells(7).Value = sPlanPcs
+            DGV.Rows(int_idx).Cells(8).Value = sWorkCenter
+            DGV.Rows(int_idx).Cells(9).Value = sRequPlanFinDate
+            DGV.Rows(int_idx).Cells(10).Value = sIniPlanFinDate
+
+            'ボタンの有効化
+            cmdDel.Enabled = True
+            cmdAllCl.Enabled = True
+            cmdOrder.Enabled = True
+
+            Me.Cursor = Cursors.Default
+            Exit Sub
+
+        Catch ex As Exception
+            Me.Cursor = Cursors.Default
+            MsgBox(ex.Message & vbCrLf & ex.StackTrace)
+
+        End Try
+
+    End Sub
+    '********************************************************
+    '*   [機能]　DBから抽出したデータをグリッドに表示する。
+    '*   2014/9/17　変更　Tekeshi.Asano　OTEC対応
+    '********************************************************
+    Private Sub DBReadAndAddGridRow(ByVal sOrder As String, ByVal sProNo As String)
+
+        Dim DBCon As New ADODB.Connection
+        Dim rs As ADODB.Recordset
+        Dim strSQL As String
+        Dim MinPro As String = ""
+        Dim MaxPro As String
+        Dim sOrderNo As String
+        Dim sProjectNo As String
+        Dim sPartsNo As String
+        Dim sPartsName As String
+        Dim sTaskNo As String
+        Dim sPlanPcs As String
+        Dim sWorkCenter As String
+        Dim sRequPlanFinDate As String
+        Dim sIniPlanFinDate As String
+        Dim sReCalDeadlineDate As String
+        Dim sIniDeadlineDate As String
+        '      Dim lCategoryFlag As Long
+        '     Dim lBNProgressID As Long
+        Dim lRet As Long
+        '    Dim lOProID As Long
+
+        Dim rsItem As ADODB.Recordset      'v2.3 Add
+        Dim rsItemGroupEmg As ADODB.Recordset      'v2.3 Add
+        Dim lngErrFlg As Long                 'v2.3 Add
+        Dim int_idx As Long
+
+        Dim douEmrg As Double  '着手日工程緊急度  'v2.4 Add
+        Dim strFydt As String  '要求工程納期      'v2.8 Add
+        Dim intPrfg As Integer '処理フラグ        'v2.4 Add
+        Dim intJgfg As Integer '判定フラグ        'v2.4 Add
+        Dim intCnfg As Integer '確定フラグ        'v2.4 Add
+        Dim rsSlipLog As ADODB.Recordset          'v2.4 Add
+
+        Dim BaanDBCon As New ADODB.Connection     'v2.6 Add
+        Dim rsBaan As ADODB.Recordset             'v2.6 Add
+
+        Dim lngJissekiOrder As Long   '最新実績ｵｰﾀﾞｰ           'v2.6 Add 
+        'Dim lngJissekiProNo As Long   '最新実績ｵｰﾀﾞｰの作業手順 'v2.6 Add 'v2.7 Che Start
+        Dim lngJissekiProNo() As Long  '最新実績ｵｰﾀﾞｰの作業手順(配列)     　
+        Dim lngJissekiProNoCnt As Long '最新実績ｵｰﾀﾞｰの作業手順配列カウント 'v2.7 Che End
+
+        Dim lngJissekiBJ As Long      '最新実績ｵｰﾀﾞｰのBJ       'v2.6 Add
+        Dim douJissekiTanka As Double '最新実績ｵｰﾀﾞｰの単価     'v2.6 Add
+
+        Dim bpiValue() As BarcodePdnoInfo  '読込ｵｰﾀﾞｰの作業手順(配列)     'v2.7 Add
+        Dim lngBarcodePdnoInfoCnt As Long '読込ｵｰﾀﾞｰの作業手順配列カウント 'v2.7 Add
+        Dim lngBarcodeBJ As Long      '読込ｵｰﾀﾞｰのBJ           'v2.6 Add
+        Dim douBarcodeTanka As Double '読込ｵｰﾀﾞｰの単価         'v2.6 Add
+
+        Dim douHantei_2Plus As Double '(判定用)最新実績ｵｰﾀﾞｰの単価の+2％ 'v2.6 Add
+        Dim douHantei_2Mai As Double  '(判定用)最新実績ｵｰﾀﾞｰの単価の-2％ 'v2.6 Add
+        Dim strTokkyuItiki As String  'パラメータの特急品閾値            'v2.6 Add
+
+        Try
+
+            Me.Cursor = Cursors.WaitCursor
+
+            'mngmacman1接続
+            DBCon.ConnectionString = Pub_DBConStr
+            DBCon.CommandTimeout = 600
+            DBCon.Open()
+
+            'BAAN接続
+            'v2.6 2017.02.20 M.Suzuki(TSK) Add Start
+            BaanDBCon.ConnectionString = Pub_BaanDBConStr
+            BaanDBCon.CommandTimeout = 600
+            BaanDBCon.Open()
+            'v2.6 2017.02.20 M.Suzuki(TSK) Add End
+
+            '
+            ' 製造オーダー８桁対応
+            ' 製造オーダー一周対応
+            ' 処理速度向上対応
+            ' プロジェクトつきオーダーを発注したとき前工程が完了していても、未完了と表示する不具合修正 '2010.11.24 T.Asano
+            strSQL = "SELECT          DISTINCT BaanProcPlan.OrderNo, " &
+                     "                BaanOrderData.ProjectNo, " &
+                     "                BaanOrderData.PartsNo, " &
+                     "                ISNULL(BaanOrderData.PartsName,xx.PartsName) AS PartsName , " &
+                     "                BaanProcPlan.ProcessNo, " &
+                     "                BaanProcPlan.Task AS TaskNo, " &
+                     "                BaanProcPlan.PlanPcs, " &
+                     "                BaanProcPlan.WorkCenter, " &
+                     "                BaanProcPlan.PlanFinDate AS RequPlanFinDate, " &
+                     "                BaanProcPlan.PlanFinDate AS IniPlanFinDate, " &
+                     "                BaanProcPlan.PlanFinDate AS RecalDeadlineDate, " &
+                     "                BaanProcPlan.PlanFinDate AS IniDeadlineDate, " &
+                     "                0 AS CategoryFlag, " &
+                     "                BaanProcPlan.ProgressID AS BNProgressID, " &
+                     "                ORPMS.dbo.MainDB.Ordered AS Ordered, " &
+                     "                ORPMS.dbo.MainDB.Fined AS Fined, " &
+                     "                ORPMS.dbo.MainDB.Payed AS Payed "
+            strSQL = strSQL &
+                     "FROM            BaanProcPlan " &
+                     "INNER JOIN      BaanOrderData ON BaanProcPlan.OrderNo = BaanOrderData.OrderNo " &
+                     "LEFT OUTER JOIN ORPMS.dbo.MainDB ON BaanProcPlan.OrderNo = ORPMS.dbo.MainDB.OrderNo " &
+                     "AND             BaanProcPlan.ProcessNo = ORPMS.dbo.MainDB.ProcessNo " &
+                     "AND             BaanOrderData.PartsNo = ORPMS.dbo.MainDB.PartsNo " &
+                     "LEFT OUTER JOIN BaanCustomizeProcMaster XX ON XX.ProjectNo = BaanOrderData.ProjectNo " &
+                     "AND             XX.PartsNo = BaanOrderData.PartsNo " &
+                     "WHERE           BaanProcPlan.OrderNo = " & CLng(sOrder) & " " &
+                     "AND             BaanProcPlan.ProcessNo <= " & CLng(sProNo) & " " &
+                     "AND             (ORPMS.dbo.MainDB.Closed = 0 OR ORPMS.dbo.MainDB.Closed IS NULL) " &
+                     "ORDER BY        BaanProcPlan.ProcessNo DESC "
+            rs = DBCon.Execute(strSQL)
+
+            If rs.BOF = True Then
+                Me.Cursor = Cursors.Default
+                MsgBox("指定した製造ｵｰﾀﾞｰ/作業手順の生産計画は、見つかりませんでした。", vbOKOnly)
+                rs = Nothing
+                Exit Sub
+            End If
+
+            '発注しようとしたもののチェック
+            If IsDBNull(rs.Fields("Ordered").Value) = False Then
+                If rs.Fields("Payed").Value = 1 Then
+                    Me.Cursor = Cursors.Default
+                    MsgBox("指定した作業手順は、すでに検収済みです。", vbOKOnly)
+                    rs = Nothing
+                    Exit Sub
+                ElseIf rs.Fields("Fined").Value = 1 Then
+                    Me.Cursor = Cursors.Default
+                    MsgBox("指定した作業手順は、すでに完了済みです。", vbOKOnly)
+                    rs = Nothing
+                    Exit Sub
+                ElseIf rs.Fields("Ordered").Value = 1 Then
+                    Me.Cursor = Cursors.Default
+                    MsgBox("指定した作業手順は、すでに発注済みです。", vbOKOnly)
+                    rs = Nothing
+                    Exit Sub
+                End If
+            End If
+            '発注しようとしたものは、既に完了
+            If rs.Fields("BNProgressID").Value = 1 Then
+                Me.Cursor = Cursors.Default
+                MsgBox("指定した作業手順は、Baan上で、すでに完了しています。", vbOKOnly)
+                rs = Nothing
+                Exit Sub
+            End If
+            '発注しようとしたものは、取消されているか？
+            If rs.Fields("CategoryFlag").Value = 2 Then
+                Me.Cursor = Cursors.Default
+                lRet = MsgBox("取消ﾒｯｾｰｼﾞが発行されています。" & vbCrLf & "発注を行いますか？", vbYesNo)
+                If lRet = vbNo Then
+                    rs = Nothing
+                    Exit Sub
+                End If
+                Me.Cursor = Cursors.WaitCursor
+            End If
+
+            sOrderNo = rs.Fields("OrderNo").Value
+            sProjectNo = rs.Fields("ProjectNo").Value
+            sPartsNo = Trim(NullChkStr(rs.Fields("PartsNo").Value))
+            sPartsName = Trim(NullChkStr(rs.Fields("PartsName").Value))
+            sTaskNo = rs.Fields("TaskNo").Value
+            sPlanPcs = rs.Fields("PlanPcs").Value
+            sWorkCenter = Trim(NullChkStr(rs.Fields("WorkCenter").Value))
+            sRequPlanFinDate = NullChkStr(rs.Fields("RequPlanFinDate").Value)
+            sIniPlanFinDate = NullChkStr(rs.Fields("IniPlanFinDate").Value)
+            sReCalDeadlineDate = NullChkStr(rs.Fields("ReCalDeadlineDate").Value)
+            sIniDeadlineDate = NullChkStr(rs.Fields("IniDeadlineDate").Value)
+            MaxPro = rs.Fields("ProcessNo").Value
+
+            rs.MoveNext()
+
+            Do While Not rs.EOF
+                If rs.Fields("WorkCenter").Value = sWorkCenter And rs.Fields("BNProgressID").Value = 1 Then
+                    '同一WCで、工程が完了 'OK'
+                    Exit Do
+                    '        ElseIf rs("WorkCenter") <> sWorkCenter And rs("BNProgressID") = 2 And rs("TaskNo") = 9000 Then
+                ElseIf rs.Fields("WorkCenter").Value <> sWorkCenter And rs.Fields("BNProgressID").Value = 2 And
+                      (rs.Fields("TaskNo").Value = 9000 Or rs.Fields("TaskNo").Value = 20010) Then
+                    '異WCで、工程が未完了で、ﾀｽｸ番号が、9000 or 20010 'OK' 2014/9/17 T.Asano
+                    MinPro = rs.Fields("ProcessNo").Value
+                    'ひとつ前の工程も検査する。
+                    rs.MoveNext()
+                    If rs.EOF = False Then
+                        If rs.Fields("BNProgressID").Value = 2 Then
+                            Me.Cursor = Cursors.Default
+                            lRet = MsgBox("指定した作業手順の前工程は、工程が未完了です。" & vbCrLf _
+                                          & "発注を行いますか？", vbYesNo)
+                            If lRet = vbYes Then
+                                Me.Cursor = Cursors.WaitCursor
+                                Exit Do
+                            Else
+                                rs = Nothing
+                                Exit Sub
+                            End If
+                        End If
+                    End If
+                    Exit Do
+                    '        ElseIf rs("WorkCenter") <> sWorkCenter And rs("BNProgressID") = 1 And rs("TaskNo") = 9000 Then
+                ElseIf rs.Fields("WorkCenter").Value <> sWorkCenter And rs.Fields("BNProgressID").Value = 1 And
+                      (rs.Fields("TaskNo").Value = 9000 Or rs.Fields("TaskNo").Value = 20010) Then
+                    '異WCで、工程が完了で、ﾀｽｸ番号が9000 or 20010 'OK' 2014/9/18 T.Asano
+                    Exit Do
+                ElseIf rs.Fields("WorkCenter").Value <> sWorkCenter And rs.Fields("BNProgressID").Value = 2 Then
+                    '異WCで、工程が未完了 'OK'
+                    Me.Cursor = Cursors.Default
+                    lRet = MsgBox("指定した作業手順の前工程は、工程が未完了です。" & vbCrLf &
+                                  "発注を行いますか？", vbYesNo, )
+                    If lRet = vbYes Then
+                        Me.Cursor = Cursors.WaitCursor
+                        Exit Do
+                    Else
+                        rs = Nothing
+                        Exit Sub
+                    End If
+                ElseIf rs.Fields("WorkCenter").Value <> sWorkCenter And rs.Fields("BNProgressID").Value = 1 Then
+                    '異WCで、工程が完了 'OK'
+                    Exit Do
+                End If
+                MinPro = rs.Fields("ProcessNo").Value
+                rs.MoveNext()
+            Loop
+
+            rs = Nothing
+
+            If Me.chkTanka.Checked = True Then 'v2.8 2017.03.30 M.Suzuki(TSK) ******************************************** Add
+                'v2.6 2017.02.20 M.Suzuki(TSK) ****************************************************************************** Add Start
+                '実績オーダーを求める
+                strSQL = "Select "
+                strSQL = strSQL & " t$pdno,t$mitm,t$osta,To_char(t$cmdt,'yyyy/mm/dd') t_cmdt"
+                strSQL = strSQL & " From baan.ttisfc001150"
+                strSQL = strSQL & " Where t$mitm = '" & sPartsNo & "'"
+                strSQL = strSQL & " And   t$osta > 6" '完了
+                strSQL = strSQL & " And   t$pdno <> " & CLng(sOrder) '読み込みオーダー以外
+                strSQL = strSQL & " Order By t$cmdt Desc"
+                rsBaan = BaanDBCon.Execute(strSQL)
+                If rsBaan.EOF = False Then
+                    lngJissekiOrder = rsBaan.Fields("t$pdno").Value '実績オーダー
+                    'v2.7 2017.03.06 M.Suzuki(TSK) ************************************************************************** Che Start
+                    '                '実績オーダーから作業手順を求める
+                    '                strSQL = "Select "
+                    '                strSQL = strSQL & " t$pdno,t$opno,t$tano,t$cwoc"
+                    '                strSQL = strSQL & " From baan.ttisfc01150"
+                    '                strSQL = strSQL & " Where t$pdno = " & lngJissekiOrder
+                    '                strSQL = strSQL & " And   t$cwoc = '" & sWorkCenter & "'"
+                    '                strSQL = strSQL & " And   t$tano = " & CLng(sTaskNo)
+                    '                strSQL = strSQL & " Order By t$opno Desc"
+                    '                rsBaan = BaanDBCon.Execute(strSQL)
+                    '                If rsBaan.EOF = False Then
+                    '                    lngJissekiProNo = rsBaan.Fields("t$opno").Value
+
+                    '                    douBarcodeTanka = 0
+                    '                    douJissekiTanka = 0
+
+                    '                    lngJissekiBJ = 0
+                    '                    lngBarcodeBJ = 0
+
+                    '                    '実績オーダー、作業手順から単価を求める
+                    '                    strSQL = "Select "
+                    '                    strSQL = strSQL & " t$orno,t$pdno,t$opno,t$pric,t$dqua"
+                    '                    strSQL = strSQL & " From baan.ttdpur041150"
+                    '                    strSQL = strSQL & " Where t$pdno = " & lngJissekiOrder
+                    '                    strSQL = strSQL & " And   t$opno = " & lngJissekiProNo
+                    '                    rsBaan = BaanDBCon.Execute(strSQL)
+                    '                    If rsBaan.EOF = False Then
+                    '                        If rsBaan.Fields("t$dqua").Value <> 0 Then
+                    '                            douJissekiTanka = rsBaan.Fields("t$pric").Value / rsBaan.Fields("t$dqua").Value
+                    '                        End If
+                    '                        lngJissekiBJ = rsBaan.Fields("t$orno").Value
+                    '                    Else
+                    '                        '実績オーダー無
+                    '                        GoTo JISSEKI_ORDER_NASHI
+                    '                    End If
+
+                    '                'バーコードから読み込んだオーダー、作業手順から単価を求める
+                    '                strSQL = "Select "
+                    '                strSQL = strSQL & " t$orno,t$pdno,t$opno,t$pric,t$dqua"
+                    '                strSQL = strSQL & " From baan.ttdpur041150"
+                    '                strSQL = strSQL & " Where t$pdno = " & CLng(sOrder)
+                    '                strSQL = strSQL & " And   t$opno = " & CLng(sProNo)
+                    '                rsBaan = BaanDBCon.Execute(strSQL)
+                    '                    If rsBaan.EOF = False Then
+                    '                        If rsBaan.Fields("t$dqua").Value <> 0 Then
+                    '                            douBarcodeTanka = rsBaan.Fields("t$pric").Value / rsBaan.Fields("t$dqua").Value
+                    '                        End If
+                    '                        lngBarcodeBJ = rsBaan.Fields("t$orno").Value
+                    '                    End If
+
+                    '                    douHantei_2Plus = douJissekiTanka * 1.02
+                    '                    douHantei_2Mai = douJissekiTanka * 0.98
+
+                    '                    If douHantei_2Plus >= douBarcodeTanka And douHantei_2Mai <= douBarcodeTanka Then
+                    '                    Else
+                    '                        '最新の実績単価±2％と異なる
+                    '                        MsgBox("単価チェック：最新の実績単価(±2%)とオーダー単価が違います" & vbCrLf & _
+                    '                               "読込オーダー：[MJ:" & CLng(sOrder) & "]、[作業手順:" & CLng(sProNo) & "]、[BJ:" & lngBarcodeBJ & "]、[単価:" & Format(douBarcodeTanka, "#,##0.##") & "]" & vbCrLf & _
+                    '                               "実績オーダー：[MJ:" & lngJissekiOrder & "]、[作業手順:" & lngJissekiProNo & "]、[BJ:" & lngJissekiBJ & "]、[単価:" & Format(douJissekiTanka, "#,##0.##") & "]", vbOKOnly)
+                    '                        rsBaan = Nothing
+                    '                        Exit Sub
+                    '                    End If
+                    '                Else
+                    '                    '実績オーダー無
+                    '                    GoTo JISSEKI_ORDER_NASHI
+                    '                End If
+                    '            Else
+                    '                '実績オーダー無
+                    'JISSEKI_ORDER_NASHI:
+                    '                MsgBox("単価チェック：比較対象となる実績オーダーなし", vbOKOnly)
+                    '                rsBaan = Nothing
+                    '                Exit Sub
+
+                    '読込オーダー、作業手順を配列へセット
+                    lngBarcodePdnoInfoCnt = 0
+                    ReDim bpiValue(lngBarcodePdnoInfoCnt)
+                    bpiValue(lngBarcodePdnoInfoCnt).lngOpno = CLng(sProNo)
+                    bpiValue(lngBarcodePdnoInfoCnt).lngTano = CLng(sTaskNo)
+                    bpiValue(lngBarcodePdnoInfoCnt).strCwoc = sWorkCenter
+                    lngBarcodePdnoInfoCnt = lngBarcodePdnoInfoCnt + 1
+
+                    'バーコードから読み込んだオーダー、作業手順で生産計画(tisfc010)を検索、チェーン(ﾌﾟﾙﾉｰﾄ数)で括られた作業手順の範囲を求める。
+                    strSQL = "Select "
+                    strSQL = strSQL & " t$pdno,t$opno,t$tano,t$cwoc,t$nnts"
+                    strSQL = strSQL & " From baan.ttisfc010150"
+                    strSQL = strSQL & " Where t$pdno = " & CLng(sOrder)
+                    strSQL = strSQL & " And   t$opno < " & CLng(sProNo)
+                    strSQL = strSQL & " Order By t$opno Desc" '※降順に ﾌﾟﾙﾉｰﾄ数=1の間 または 最終ﾚｺｰﾄﾞまで読み込む
+                    rsBaan = BaanDBCon.Execute(strSQL)
+                    If rsBaan.EOF = False Then
+                        Do Until rsBaan.EOF
+                            If rsBaan.Fields("t$nnts").Value = 0 Then
+                                Exit Do
+                            End If
+                            ReDim Preserve bpiValue(lngBarcodePdnoInfoCnt)
+                            bpiValue(lngBarcodePdnoInfoCnt).lngOpno = rsBaan.Fields("t$opno").Value
+                            bpiValue(lngBarcodePdnoInfoCnt).lngTano = rsBaan.Fields("t$tano").Value
+                            bpiValue(lngBarcodePdnoInfoCnt).strCwoc = rsBaan.Fields("t$cwoc").Value
+                            lngBarcodePdnoInfoCnt = lngBarcodePdnoInfoCnt + 1
+                            rsBaan.MoveNext()
+                        Loop
+                    End If
+
+                    '実績オーダー、読込オーダーの作業手順の範囲で生産計画(tisfc010)を取得する。
+                    lngJissekiProNoCnt = 0
+                    ReDim lngJissekiProNo(lngJissekiProNoCnt)
+                    For lngBarcodePdnoInfoCnt = LBound(bpiValue) To UBound(bpiValue)
+                        strSQL = "Select "
+                        strSQL = strSQL & " t$pdno,t$opno,t$tano,t$cwoc,t$nnts"
+                        strSQL = strSQL & " From baan.ttisfc010150"
+                        strSQL = strSQL & " Where t$pdno = " & lngJissekiOrder
+                        strSQL = strSQL & " And   t$opno = " & bpiValue(lngBarcodePdnoInfoCnt).lngOpno
+                        strSQL = strSQL & " And   t$tano = " & bpiValue(lngBarcodePdnoInfoCnt).lngTano ' ※ただしバーコードから読み込んだ作業手順のＷＣ・タスクと一致すること。
+                        strSQL = strSQL & " And   t$cwoc = '" & bpiValue(lngBarcodePdnoInfoCnt).strCwoc & "'"
+                        rsBaan = BaanDBCon.Execute(strSQL)
+                        If rsBaan.EOF = False Then
+                            ReDim Preserve lngJissekiProNo(lngJissekiProNoCnt)
+                            lngJissekiProNo(lngJissekiProNoCnt) = rsBaan.Fields("t$opno").Value
+                            lngJissekiProNoCnt = lngJissekiProNoCnt + 1
+                        End If
+                    Next
+                    '読込製造オーダー、作業手順に紐つく購買オーダーライン(tdpur041)の価格(tdpur041.pric)合計を求める
+                    douBarcodeTanka = 0
+                    lngBarcodeBJ = 0
+                    For lngBarcodePdnoInfoCnt = LBound(bpiValue) To UBound(bpiValue)
+                        strSQL = "Select "
+                        strSQL = strSQL & " t$orno,t$pdno,t$opno,t$pric,t$dqua"
+                        strSQL = strSQL & " From baan.ttdpur041150"
+                        strSQL = strSQL & " Where t$pdno = " & CLng(sOrder)
+                        strSQL = strSQL & " And   t$opno = " & bpiValue(lngBarcodePdnoInfoCnt).lngOpno
+                        rsBaan = BaanDBCon.Execute(strSQL)
+                        If rsBaan.EOF = False Then
+                            lngBarcodeBJ = rsBaan.Fields("t$orno").Value
+                            douBarcodeTanka = douBarcodeTanka + rsBaan.Fields("t$pric").Value
+                        End If
+                    Next
+                    '実績製造オーダー、作業手順に紐つく購買オーダーライン(tdpur041)の価格(tdpur041.pric)合計
+                    douJissekiTanka = 0
+                    lngJissekiBJ = 0
+                    For lngJissekiProNoCnt = LBound(lngJissekiProNo) To UBound(lngJissekiProNo)
+                        strSQL = "Select "
+                        strSQL = strSQL & " t$orno,t$pdno,t$opno,t$pric,t$dqua"
+                        strSQL = strSQL & " From baan.ttdpur041150"
+                        strSQL = strSQL & " Where t$pdno = " & lngJissekiOrder
+                        strSQL = strSQL & " And   t$opno = " & lngJissekiProNo(lngJissekiProNoCnt)
+                        rsBaan = BaanDBCon.Execute(strSQL)
+                        If rsBaan.EOF = False Then
+                            lngJissekiBJ = rsBaan.Fields("t$orno").Value
+                            douJissekiTanka = douJissekiTanka + rsBaan.Fields("t$pric").Value
+                        End If
+                    Next
+
+                    douHantei_2Plus = douJissekiTanka * 1.02
+                    douHantei_2Mai = douJissekiTanka * 0.98
+
+                    If douHantei_2Plus >= douBarcodeTanka And douHantei_2Mai <= douBarcodeTanka Then
+                    Else
+                        'v2.8 ************************************************************************************* Che Start
+                        '最新の実績単価±2％と異なる
+                        'MsgBox("単価チェック：最新の実績単価(±2%)とオーダー単価が違います" & vbCrLf & _
+                        '    "読込オーダー：[MJ:" & CLng(sOrder) & "]、[作業手順:" & bpiValue(UBound(bpiValue)).lngOpno & "-" & bpiValue(LBound(bpiValue)).lngOpno & "]、[BJ:" & lngBarcodeBJ & "]、[単価:" & Format(douBarcodeTanka, "#,##0.##") & "]" & vbCrLf & _
+                        '    "実績オーダー：[MJ:" & lngJissekiOrder & "]、[作業手順:" & lngJissekiProNo(UBound(lngJissekiProNo)) & "-" & lngJissekiProNo(LBound(lngJissekiProNo)) & "]、[BJ:" & lngJissekiBJ & "]、[単価:" & Format(douJissekiTanka, "#,##0.##") & "]", vbOKOnly)
+                        'rsBaan = Nothing
+                        'Exit Sub 
+                        lRet = MsgBox("単価チェック：最新の実績単価(±2%)とオーダー単価が違います" & vbCrLf &
+                            "読込オーダー：[MJ:" & CLng(sOrder) & "]、[作業手順:" & bpiValue(UBound(bpiValue)).lngOpno & "-" & bpiValue(LBound(bpiValue)).lngOpno & "]、[BJ:" & lngBarcodeBJ & "]、[単価:" & Format(douBarcodeTanka, "#,##0.##") & "]" & vbCrLf &
+                            "実績オーダー：[MJ:" & lngJissekiOrder & "]、[作業手順:" & lngJissekiProNo(UBound(lngJissekiProNo)) & "-" & lngJissekiProNo(LBound(lngJissekiProNo)) & "]、[BJ:" & lngJissekiBJ & "]、[単価:" & Format(douJissekiTanka, "#,##0.##") & "]" & vbCrLf &
+                             vbCrLf &
+                            "このまま発注を行いますか？" & vbCrLf &
+                            "　は　い ：「発注」" & vbCrLf &
+                            "　いいえ ：「戻る」", MsgBoxStyle.Question + MsgBoxStyle.YesNo)
+                        'エラー履歴テーブルへ書き込み
+                        strSQL = mfnc_InsertErrorHistroy(CLng(sOrder), CLng(sProNo), 7, , , douJissekiTanka, douBarcodeTanka)
+                        DBCon.Execute(strSQL)
+
+                        rsBaan = Nothing
+                        If lRet = vbNo Then
+                            Exit Sub
+                        End If
+                        'v2.8 ************************************************************************************* Che End
+                    End If
+                Else
+                    '実績オーダー無
+JISSEKI_ORDER_NASHI:
+                    'v2.8 ************************************************************************************* Che Start
+                    'MsgBox("単価チェック：比較対象となる実績オーダーなし", vbOKOnly)
+                    'rsBaan = Nothing
+                    lRet = MsgBox("単価チェック：比較対象となる実績オーダーなし" & vbCrLf &
+                             vbCrLf &
+                            "このまま発注を行いますか？" & vbCrLf &
+                            "　は　い ：「発注」" & vbCrLf &
+                            "　いいえ ：「戻る」", MsgBoxStyle.Question + MsgBoxStyle.YesNo)
+                    'エラー履歴テーブルへ書き込み
+                    strSQL = mfnc_InsertErrorHistroy(CLng(sOrder), CLng(sProNo), 8, , , , )
+                    DBCon.Execute(strSQL)
+
+                    rsBaan = Nothing
+                    If lRet = vbNo Then
+                        Exit Sub
+                    End If
+                    'v2.8 ************************************************************************************* Che End
+                    Exit Sub
+                    'v2.7 2017.03.06 M.Suzuki(TSK) ****************************************************************************** Che End
+                End If
+
+                rsBaan = Nothing
+                'v2.6 2017.02.20 M.Suzuki(TSK) ****************************************************************************** Add End
+            End If 'v2.8 2017.03.30 M.Suzuki(TSK) *************************************************************************** Add
+
+            If Me.chkHayasugi.Checked = True Then 'v2.8 2017.03.30 M.Suzuki(TSK) ******************************************** Add
+
+                'v2.4 2016.04.12 M.Suzuki(TSK) ****************************************************************************** Add Start
+                '変数初期化
+                douEmrg = 0 '着手日工程緊急度
+                intPrfg = 1 '処理フラグ
+                intJgfg = 0 '判定フラグ
+                intCnfg = 0 '確定フラグ
+                'v2.4 2016.04.12 M.Suzuki(TSK) ****************************************************************************** Add End
+                strFydt = "" '要求工程納期　'v2.8 2017.03.30 M.Suzuki(TSK) Add
+
+                'v2.8 2017.03.30 M.Suzuki(TSK) Che Start
+                'v2.3 2016.03.23 K.Nakano(TSK) ****************************************************************************** Add Start
+                ' 着手日工程緊急度 ＆ 閾値
+                'strSQL = "SELECT a.orno, a.opfm, a.opto, a.cwoc, a.item, a.emrg, a.odwt " & _
+                '         "FROM  ORPMS.dbo.StartDateProcEmergency AS a " & _
+                '         "WHERE a.orno = " & CLng(sOrder) & " " & _
+                '         "AND   a.opto = " & CLng(sProNo) & " "
+                strSQL = "SELECT a.orno, a.opfm, a.opto, a.cwoc, a.item, a.emrg, a.odwt "
+                strSQL = strSQL & ", a.fydt "
+                strSQL = strSQL & "FROM  ORPMS.dbo.StartDateProcEmergency AS a "
+                strSQL = strSQL & "WHERE a.orno = " & CLng(sOrder) & " "
+                strSQL = strSQL & "AND   a.opto = " & CLng(sProNo) & " "
+                'v2.8 2017.03.30 M.Suzuki(TSK) Che End
+                rs = DBCon.Execute(strSQL)
+
+                lngErrFlg = 0
+                If rs.EOF = False Then
+                    If IsDBNull(rs.Fields("emrg").Value) = False Then  'v2.4 2016.04.12 M.Suzuki(TSK) Add Start
+                        douEmrg = rs.Fields("emrg").Value  '着手日工程緊急度
+                    Else
+                        douEmrg = 99
+                    End If 'v2.4 2016.04.12 M.Suzuki(TSK) Add End
+
+                    If IsDBNull(rs.Fields("fydt").Value) = False Then  'v2.8 2017.03.30 M.Suzuki(TSK) Add Start
+                        strFydt = rs.Fields("fydt").Value  '要求工程納期
+                    End If 'v2.8 2017.03.30 M.Suzuki(TSK) Add End
+
+                    '品目ｸﾞﾙｰﾌﾟ取得
+                    strSQL = "SELECT a.PartsNo, a.PartsName, a.PartsGroup " &
+                             "FROM  BaanPartsMaster AS a " &
+                             "WHERE a.PartsNo = '" & rs.Fields("item").Value & "'"
+                    rsItem = DBCon.Execute(strSQL)
+
+                    If rsItem.EOF = False Then
+                        '品目ｸﾞﾙｰﾌﾟ別緊急度(閾値)取得
+                        strSQL = "SELECT a.citg, a.emrg " &
+                                 "FROM  ORPMS.dbo.ItemGroupEmergency AS a " &
+                                 "WHERE a.citg = '" & rsItem.Fields("PartsGroup").Value & "'"
+                        rsItemGroupEmg = DBCon.Execute(strSQL)
+
+                        If rsItemGroupEmg.EOF = False Then
+
+                            '着手日工程緊急度 値存在ﾁｪｯｸ
+                            If IsDBNull(rsItemGroupEmg.Fields("emrg").Value) = False And
+                                         rsItemGroupEmg.Fields("emrg").Value.ToString <> "" Then
+
+                                '着手日工程緊急度ﾁｪｯｸ
+                                If rs.Fields("emrg").Value > rsItemGroupEmg.Fields("emrg").Value Then   '***** 緊急度判定 *****
+                                    lngErrFlg = 1       ' *** 早過ぎ判定 = YES
+                                Else
+                                    lngErrFlg = 0       ' *** 早過ぎ判定 = NO
+                                End If
+                            Else
+                                lngErrFlg = 2           ' *** 緊急度の値 無し
+                            End If
+                        Else
+                            lngErrFlg = 0               ' *** 品目ｸﾞﾙｰﾌﾟ別緊急度(閾値) ﾚｺｰﾄﾞ無し  ★★★ 早過ぎ判定=NO とする ★★★
+                            'lngErrFlg = 3               ' *** 品目ｸﾞﾙｰﾌﾟ別緊急度(閾値) ﾚｺｰﾄﾞ無し
+
+                        End If
+                    Else
+                        lngErrFlg = 4                   ' *** 品目ﾏｽﾀ ﾚｺｰﾄﾞ無し
+
+                    End If
+                Else
+                    lngErrFlg = 5                       ' *** 着手日工程緊急度 ﾚｺｰﾄﾞ無し
+                End If
+
+                If lngErrFlg > 0 Then
+                    'v2.8 2017.03.30 M.Suzuki(TSK) ************************************************************ Add Start
+                    'エラー履歴テーブルへ書き込み
+                    strSQL = mfnc_InsertErrorHistroy(CLng(sOrder), CLng(sProNo), lngErrFlg, strFydt, douEmrg, , )
+                    DBCon.Execute(strSQL)
+                    'v2.8 2017.03.30 M.Suzuki(TSK) ************************************************************ Add End
+
+                    Me.Cursor = Cursors.Default
+                    'Call Beep(2000, 500)
+                    Beep()
+                    Select Case lngErrFlg
+                        '早過ぎ判定 = YES
+                        Case 1
+                            lRet = MsgBox("指定した作業手順の着手日工程緊急度は " & rs.Fields("emrg").Value &
+                                          " で「早過ぎ発注」です。" & vbCrLf &
+                                          "このまま発注を行いますか？" & vbCrLf &
+                                          "　は　い ：「発注」" & vbCrLf &
+                                          "　いいえ ：「発注待ち」" & vbCrLf &
+                                          "　ｷｬﾝｾﾙ　： 戻る", vbYesNoCancel + vbDefaultButton2 + vbQuestion)
+
+                            '緊急度の値 無し or 着手日工程緊急度 ﾚｺｰﾄﾞ無し
+                        Case 2, 5
+                            lRet = MsgBox("指定した作業手順の着手日工程緊急度が設定されていません。" & vbCrLf &
+                                          "このまま発注を行いますか？" & vbCrLf &
+                                          "　は　い ：「発注」" & vbCrLf &
+                                          "　いいえ ：「発注待ち」" & vbCrLf &
+                                          "　ｷｬﾝｾﾙ　： 戻る", vbYesNoCancel + vbDefaultButton2 + vbQuestion)
+
+                            '品目ｸﾞﾙｰﾌﾟ別緊急度(閾値) ﾚｺｰﾄﾞ無し
+                        Case 3
+                            lRet = MsgBox("指定したＭＪの品目グループ ： " & rs.Fields("PartsGroup").Value &
+                                          " が「品目グループ別緊急度(閾値)テーブル」に設定されていません。" & vbCrLf &
+                                          "このまま発注を行いますか？" & vbCrLf &
+                                          "　は　い ：「発注」" & vbCrLf &
+                                          "　いいえ ：「発注待ち」" & vbCrLf &
+                                          "　ｷｬﾝｾﾙ　： 戻る", vbYesNoCancel + vbDefaultButton2 + vbQuestion)
+
+                            '品目ﾏｽﾀ ﾚｺｰﾄﾞ無し
+                        Case 4
+                            lRet = MsgBox("指定したＭＪの品目 ： " & rs.Fields("item").Value & " から品目グループが取得できません。" & vbCrLf &
+                                          "このまま発注を行いますか？" & vbCrLf &
+                                          "　は　い ：「発注」" & vbCrLf &
+                                          "　いいえ ：「発注待ち」" & vbCrLf &
+                                          "　ｷｬﾝｾﾙ　： 戻る", vbYesNoCancel + vbDefaultButton2 + vbQuestion)
+                    End Select
+
+                    intJgfg = lngErrFlg '判定フラグ 'Add v2.4
+
+                    '発注（強制的に発注する）
+                    If lRet = vbYes Then
+                        '実際の発行処理時に、odwt=1 の場合 0 に更新する
+                        Me.Cursor = Cursors.WaitCursor
+                        intPrfg = 1 '処理フラグ=発注 'Add v2.4
+                        intCnfg = 0 '確定フラグ=No 'Add v2.4
+
+                        '発注待ち（着手日工程緊急度ﾃｰﾌﾞﾙの発注待ちﾌﾗｸﾞ更新）
+                    ElseIf lRet = vbNo Then
+                        '更新(odwt=0⇒1) ------------------------------------------------------------------------------
+                        strSQL = "UPDATE ORPMS.dbo.StartDateProcEmergency SET " &
+                                 "odwt = 1, " &
+                                 "wtdt = '" & Format(Now, "yyyy/MM/dd HH:mm:ss") & "' " &
+                                 "WHERE orno = " & CLng(sOrder) & " " &
+                                 "AND   opto = " & CLng(sProNo) & " "
+                        DBCon.Execute(strSQL)
+                        '----------------------------------------------------------------------------------------------
+                        Me.Cursor = Cursors.Default
+                        intPrfg = 2 '処理フラグ=一旦停止 'Add v2.4
+                        intCnfg = 1 '確定フラグ=Yes 'Add v2.4
+                        ' Set rs = Nothing 'Del v2.4
+                        ' Exit Sub 'Del v2.4
+
+                        'ｷｬﾝｾﾙ（何もしない）
+                    Else
+                        Me.Cursor = Cursors.Default
+                        rs = Nothing
+                        Exit Sub
+                    End If
+                End If
+
+                'v2.4 2016.04.12 M.Suzuki(TSK) Add Start
+                strSQL = "Select prdt,prtm,orno,opno,prfg"
+                strSQL = strSQL & " ,emrg,jgfg,cnfg,cmnm"
+                strSQL = strSQL & " From ORPMS.dbo.SlipProcessLog"
+                strSQL = strSQL & " Where orno = " & CLng(sOrder)
+                strSQL = strSQL & " And   opno = " & CLng(sProNo)
+                strSQL = strSQL & " And   prdt = '" & Format(Now, "yyyy/MM/dd") & "'"
+                rsSlipLog = DBCon.Execute(strSQL)
+
+                If rsSlipLog.EOF = False Then
+                    If DateDiff("s", Format(rsSlipLog.Fields("prdt").Value, "yyyy/MM/dd") & " " & rsSlipLog.Fields("prtm").Value _
+                       , Format(Now, "yyyy/MM/dd HH:mm:ss")) <= 5 Then
+                        '前回実行時より5秒以内なら追加を行わない
+                        GoTo END_LOG_INSERT
+                    End If
+                End If
+                '伝票処理ログテーブル 追加
+                strSQL = "Insert Into ORPMS.dbo.SlipProcessLog("
+                strSQL = strSQL & " prdt,prtm,orno,opno,prfg"
+                strSQL = strSQL & ",emrg,jgfg,cnfg,cmnm"
+                strSQL = strSQL & ") Values ( "
+                strSQL = strSQL & " '" & Format(Now, "yyyy/MM/dd") & "'"
+                strSQL = strSQL & ",'" & Format(Now, "HH:mm:ss") & "'"
+                strSQL = strSQL & "," & CLng(sOrder)
+                strSQL = strSQL & "," & CLng(sProNo)
+                strSQL = strSQL & "," & intPrfg
+                strSQL = strSQL & "," & IIf(douEmrg = 99, "NULL", douEmrg)
+                strSQL = strSQL & "," & intJgfg
+                strSQL = strSQL & "," & intCnfg
+                strSQL = strSQL & ",'" & Pub_PCname & "'"
+                strSQL = strSQL & ")"
+                DBCon.Execute(strSQL)
+
+END_LOG_INSERT:
+                'v2.4 2016.04.12 M.Suzuki(TSK) Add End
+
+                rs = Nothing
+
+                If intPrfg = 2 Then 'v2.4 2016.04.12 M.Suzuki(TSK) Add Start
+                    Exit Sub
+                End If 'v2.4 2016.04.12 M.Suzuki(TSK) Add End
+                'v2.3 2016.03.23 K.Nakano(TSK) ****************************************************************************** Add End
+            End If 'v2.8 2017.03.30 M.Suzuki(TSK) *************************************************************************** Add
+
+            'v2.8 2017.03.30 M.Suzuki(TSK) ********************************************************************************** Che Start
+            ''v2.6 2017.02.20 M.Suzuki(TSK) ********************************************************************************** Add Start
+            'strTokkyuItiki = Trim(GetParam(Pub_ParamFileName, "TokyuIkiti"))
+            If Me.chkMaedaoshi.Checked = True Then
+                '変数初期化
+                douEmrg = 0 '着手日工程緊急度
+                '要求工程納期、 着手日工程緊急度
+                strSQL = "SELECT a.orno, a.opfm, a.opto, a.cwoc, a.item, a.fydt, a.emrg  " &
+                         "FROM  ORPMS.dbo.StartDateProcEmergency AS a " &
+                         "WHERE a.orno = " & CLng(sOrder) & " " &
+                         "AND   a.opto = " & CLng(sProNo) & " "
+                rs = DBCon.Execute(strSQL)
+
+                If rs.EOF = False Then
+                    If IsDBNull(rs.Fields("emrg").Value) = False Then  'v2.10 2016.05.11 M.Suzuki(TSK) Add Start
+                        douEmrg = rs.Fields("emrg").Value  '着手日工程緊急度
+                    Else
+                        douEmrg = 99
+                    End If 'v2.10 2016.05.11 M.Suzuki(TSK) Add End
+                End If
+                strTokkyuItiki = Me.txtMaedaoshi.Text
+                'v2.8 2017.03.30 M.Suzuki(TSK) ********************************************************************************** Che End
+                If douEmrg = 99 Then
+                Else
+                    strSQL = "SELECT "
+                    strSQL = strSQL & " ReCalBaanProcPlan.OrderNo "
+                    strSQL = strSQL & ",ReCalBaanProcPlan.ProcessNo "
+                    strSQL = strSQL & ",ReCalBaanProcPlan.Arrangement "
+                    strSQL = strSQL & "FROM ReCalBaanProcPlan "
+                    strSQL = strSQL & "WHERE           ReCalBaanProcPlan.OrderNo = " & CLng(sOrder) & " "
+                    strSQL = strSQL & "AND             ReCalBaanProcPlan.ProcessNo = " & CLng(sProNo) & " "
+                    rs = DBCon.Execute(strSQL)
+                    If Not rs.BOF = True Then
+                        If IsDBNull(rs.Fields("Arrangement").Value) = False Then
+                            If Trim(rs.Fields("Arrangement").Value) = "雑番" Or Trim(rs.Fields("Arrangement").Value) = "その他" Or
+                                Mid(Trim(rs.Fields("Arrangement").Value), 1, 2) = "サ-" Then
+                                '「雑番」、「その他」、「サ-」で始まるものはチェックを除外
+                            Else
+                                If CDbl(strTokkyuItiki) > douEmrg Then
+                                    MsgBox("特急品：[" & CStr(douEmrg) & "] (閾値：" & strTokkyuItiki & ")", vbOKOnly)
+                                    'v2.8 2017.03.30 M.Suzuki(TSK) ********************************************************** Che Start
+                                    'Exit Sub 
+                                    'エラー履歴テーブルへ書き込み
+                                    strSQL = mfnc_InsertErrorHistroy(CLng(sOrder), CLng(sProNo), 6, , douEmrg, , )
+                                    DBCon.Execute(strSQL)
+                                    'v2.8 2017.03.30 M.Suzuki(TSK) ********************************************************** Che Start
+                                End If
+                            End If
+                        End If
+                    End If
+                End If
+                'v2.6 2017.02.20 M.Suzuki(TSK) ****************************************************************************** Add End
+            End If 'v2.8 2017.03.30 M.Suzuki(TSK) *************************************************************************** Add
+
+            If MinPro <> "" Then
+                MaxPro = MinPro & " - " & MaxPro
+            End If
+
+            'グリッドコントロールに書く
+            DGV.Rows.Add()
+            int_idx = DGV.Rows.Count - 1
+
+            DGV.Rows(int_idx).Cells(1).Value = sOrderNo
+            DGV.Rows(int_idx).Cells(2).Value = sProjectNo
+            DGV.Rows(int_idx).Cells(3).Value = MaxPro
+            DGV.Rows(int_idx).Cells(4).Value = sPartsNo
+            DGV.Rows(int_idx).Cells(5).Value = sPartsName
+            DGV.Rows(int_idx).Cells(6).Value = sTaskNo
+            DGV.Rows(int_idx).Cells(7).Value = sPlanPcs
+            DGV.Rows(int_idx).Cells(8).Value = sWorkCenter
+            DGV.Rows(int_idx).Cells(9).Value = sRequPlanFinDate
+            DGV.Rows(int_idx).Cells(10).Value = sIniPlanFinDate
+
+            'ボタンの有効化
+            cmdDel.Enabled = True
+            cmdAllCl.Enabled = True
+            cmdOrder.Enabled = True
+
+            Me.Cursor = Cursors.Default
+
+            Exit Sub
+        Catch ex As Exception
+            Me.Cursor = Cursors.Default
+
+            MsgBox(Err.Description & vbCrLf & ex.StackTrace)
+
+        End Try
+
+    End Sub
+
+    '***********************************************************************
+    '*バーコード入力テキストにてキーボード押下時処理
+    '***********************************************************************
+    Private Sub txtBarCode_KeyPress(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles txtBarCode.KeyPress
+        '入力文字数4文字以上andエンターキー押下にてOKボタンクリックイベントを発生させる
+        If (e.KeyChar = Chr(13)) And Len(Trim(Me.txtBarCode.Text)) >= 4 Then
+            Call Me.cmdManInOK.PerformClick()
+        End If
+
+    End Sub
+
+    '***********************************************************************
+    '*バーコード入力テキストにてデータ変更時処理
+    '***********************************************************************
+    Private Sub txtBarCode_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles txtBarCode.TextChanged
+        '入力文字4文字以上でOKボタンを有効にする(3文字以下は無効にする)
+        If Len(Trim(Me.txtBarCode.Text)) >= 4 Then
+            Me.cmdManInOK.Enabled = True
+            Me.cmdManInOK.Visible = True
+        Else
+            Me.cmdManInOK.Enabled = False
+        End If
+    End Sub
+
+    '***********************************************************************
+    '*終了ボタン押下時処理
+    '***********************************************************************
+    Private Sub cmdExit_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cmdExit.Click
+        Me.Close()
+    End Sub
+
+    '***********************************************************************
+    '*フォームクローズ時処理
+    '***********************************************************************
+    Private Sub form1_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
+        'フォームサイズの保存
+        My.Settings.MyClientSize = Me.ClientSize
+        'フォーム位置の保存
+        My.Settings.MyLocation = Me.Location
+
+        '早過ぎチェック・閾値、特急品チェック・閾値、単価チェックの値をxmlファイルに書き込み
+        'v2.8 2017.03.30 M.Suzuki(TSK) ******************************************** Add Start
+        putParam(Pub_ParamFileName, "HayasugiCheckUmu", Me.chkHayasugi.Checked)
+
+        putParam(Pub_ParamFileName, "TokyuCheckUmu", Me.chkMaedaoshi.Checked)
+        If Trim(Me.txtMaedaoshi.Text) = "" Then
+            putParam(Pub_ParamFileName, "TokyuIkiti", 0)
+        Else
+            putParam(Pub_ParamFileName, "TokyuIkiti", Me.txtMaedaoshi.Text)
+        End If
+
+        putParam(Pub_ParamFileName, "TankaCheckUmu", Me.chkTanka.Checked)
+        'v2.8 2017.03.30 M.Suzuki(TSK) ******************************************** Add End
+
+        'v209 2017.04.17 M.Suzuki(TSK) ******************************************** Add End
+        putParam(Pub_ParamFileName, "CSVOutput", Me.chkCsvOutput.Checked)
+        'v209 2017.04.17 M.Suzuki(TSK) ******************************************** Add End
+
+    End Sub
+
+    'v2.8 2017.03.30 M.Suzuki(TSK) ******************************************** Add Start
+    Private Function mfnc_InsertErrorHistroy(ByVal intOrno As Integer, ByVal intOpno As Integer, ByVal intErrg As Integer, _
+                                    Optional ByVal strFydt As String = "", _
+                                    Optional ByVal douEmrg As Double = 0, _
+                                    Optional ByVal douBepr As Double = 0, Optional ByVal douPric As Double = 0) As String
+        Dim strRet As String
+        Dim strSql As String
+        strRet = False
+        strSql = ""
+
+        Try
+            strSql = "Insert Into ORPMS.dbo.ErrorHistory (" & vbCrLf
+            strSql = strSql & " crdt,crtm,orno,opno,errg" & vbCrLf
+            strSql = strSql & ",fydt,emrg,ordf,bepr,pric" & vbCrLf
+            strSql = strSql & ") Values (" & vbCrLf
+            strSql = strSql & " '" & Format(Now, "yyyy/MM/dd HH:mm:ss.fff") & "'" & vbCrLf '処理日
+            strSql = strSql & ",'" & Format(Now, "HH:mm:ss") & "'" & vbCrLf   '処理時刻
+            strSql = strSql & "," & intOrno & vbCrLf                          'オーダー
+            strSql = strSql & "," & intOpno & vbCrLf                          '作業手順
+            strSql = strSql & "," & intErrg & vbCrLf                          'エラーフラグ
+            If Trim(strFydt) = "" Then                                        '要求工程納期
+                strSql = strSql & ",NULL" & vbCrLf
+            Else
+                strSql = strSql & ",'" & strFydt & "'" & vbCrLf
+            End If
+            strSql = strSql & "," & douEmrg & vbCrLf                          '着手日工程緊急度
+            strSql = strSql & ",0" & vbCrLf                                   '発注フラグ
+            strSql = strSql & "," & douBepr & vbCrLf                          '前回単価
+            strSql = strSql & "," & douPric & vbCrLf                          '単価
+            strSql = strSql & ")" & vbCrLf
+
+            strRet = strSql
+
+        Catch ex As Exception
+            Me.Cursor = Cursors.Default
+            MsgBox(Err.Description & vbCrLf & ex.StackTrace)
+
+        Finally
+            mfnc_InsertErrorHistroy = strRet
+
+        End Try
+
+    End Function
+
+    Private Sub cmdErrHistory_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cmdErrHistory.Click
+
+        Dim strSql As String
+        Dim DBCon As New ADODB.Connection
+        Dim adoRecord1 As ADODB.Recordset
+
+        Dim objapp As Excel.Application = Nothing
+        Dim objbook As Excel.Workbook = Nothing
+        Dim objsheet As Excel.Worksheet = Nothing
+
+        Dim lngRow As Long
+
+        Const cntstrExcelColOrno As String = "B" 'オーダー
+        Const cntstrExcelColOpno As String = "C" '作業手順
+        Const cntstrExcelColErrf As String = "D" 'エラー内容
+        Const cntstrExcelColOrdf As String = "E" '発注区分
+        Const cntstrExcelColEmrg As String = "F" '着手日工程緊急度
+        Const cntstrExcelColFydt As String = "G" '要求工程納期
+        Const cntstrExcelColBepr As String = "H" '前回単価
+        Const cntstrExcelColPric As String = "I" '単価
+        Const cntstrExcelColCrdt As String = "J" '処理日
+        Const cntstrExcelColCrtm As String = "K" '時間
+
+        Const cntlngExcelRowDataFirst As Long = 3 'データ開始行
+
+        If Trim(Me.txtHistroryDate.Text) = "" Then
+            MsgBox("エラー履歴の抽出日付が未指定", MsgBoxStyle.Critical + MsgBoxStyle.OkOnly)
+            txtHistroryDate.Focus()
+            Exit Sub
+        ElseIf IsDate(Me.txtHistroryDate.Text) = False Then
+            MsgBox("エラー履歴の抽出日付が日付形式ではありません", MsgBoxStyle.Critical + MsgBoxStyle.OkOnly)
+            txtHistroryDate.Focus()
+            Exit Sub
+        End If
+
+        Try
+            'mngmacman1接続
+            DBCon.ConnectionString = Pub_DBConStr
+            DBCon.CommandTimeout = 600
+            DBCon.Open()
+
+            'データの取得
+            strSql = "Select"
+            strSql = strSql & " [orno] As オーダー"
+            strSql = strSql & ",[opno] As 作業手順   "
+            strSql = strSql & ",Case When [errg] = '1' Then '1:早過ぎ'"
+            strSql = strSql & "      When [errg] = '2' Then '2:緊急度未設定'"
+            strSql = strSql & "      When [errg] = '4' Then '4:品目ﾏｽﾀなし'"
+            strSql = strSql & "      When [errg] = '5' Then '5:緊急度ﾚｺｰﾄﾞなし'"
+            strSql = strSql & "      When [errg] = '6' Then '6:特急'"
+            strSql = strSql & "      When [errg] = '7' Then '7:単価ｴﾗｰ'"
+            strSql = strSql & "      When [errg] = '8' Then '8:初品/実績なし'"
+            strSql = strSql & "      Else '' End As エラー内容  "
+            strSql = strSql & ",Case When [ordf] = '0' Then '未'"
+            strSql = strSql & "      When [ordf] = '1' Then '済'"
+            strSql = strSql & "      Else '未' End As 発注区分"
+            strSql = strSql & ",[emrg] As 着手日工程緊急度 "
+            strSql = strSql & ",Convert(Varchar,[fydt],111) As 要求工程納期   "
+            strSql = strSql & ",[bepr] As 前回単価"
+            strSql = strSql & ",[pric] As 単価"
+            strSql = strSql & ",Convert(Varchar,[crdt],111) As 処理日"
+            strSql = strSql & ",[crtm] As 時間"
+            strSql = strSql & " FROM [ORPMS].[dbo].[ErrorHistory]"
+            strSql = strSql & " Where Convert(Varchar,[crdt],111) >= '" & _
+                              Format(CDate(Me.txtHistroryDate.Text), "yyyy/MM/dd") & "'"
+            strSql = strSql & " ORDER BY [crdt],[crtm],[orno],[opno]"
+
+            adoRecord1 = DBCon.Execute(strSql)
+            If adoRecord1.EOF = False Then
+
+                'シートの作成
+                objapp = New Excel.Application()
+                objapp.Workbooks.Add()
+                objbook = objapp.Workbooks(1)
+                objsheet = CType(objbook.Worksheets(1), Excel.Worksheet)
+
+                With objsheet
+                    '見出し、書式のセット
+                    .Cells(cntlngExcelRowDataFirst - 1, cntstrExcelColOrno).Value = "オーダー"
+                    .Cells(cntlngExcelRowDataFirst - 1, cntstrExcelColOpno).Value = "作業手順"
+                    .Cells(cntlngExcelRowDataFirst - 1, cntstrExcelColErrf).Value = "エラー内容"
+                    .Range(cntstrExcelColErrf & cntlngExcelRowDataFirst & ":" & _
+                           cntstrExcelColErrf & .Rows.Count).NumberFormatLocal = "@"
+                    .Cells(cntlngExcelRowDataFirst - 1, cntstrExcelColOrdf).Value = "発注区分"
+                    .Range(cntstrExcelColOrdf & cntlngExcelRowDataFirst & ":" & _
+                           cntstrExcelColOrdf & .Rows.Count).NumberFormatLocal = "@"
+                    .Cells(cntlngExcelRowDataFirst - 1, cntstrExcelColEmrg).Value = "着手日工程緊急度"
+                    .Range(cntstrExcelColEmrg & cntlngExcelRowDataFirst & ":" & _
+                           cntstrExcelColEmrg & .Rows.Count).NumberFormatLocal = "#,##0.00"
+                    .Cells(cntlngExcelRowDataFirst - 1, cntstrExcelColFydt).Value = "要求工程納期"
+                    .Range(cntstrExcelColFydt & cntlngExcelRowDataFirst & ":" & _
+                           cntstrExcelColFydt & .Rows.Count).NumberFormatLocal = "yyyy/mm/dd"
+                    .Cells(cntlngExcelRowDataFirst - 1, cntstrExcelColBepr).Value = "前回単価"
+                    .Cells(cntlngExcelRowDataFirst - 1, cntstrExcelColPric).Value = "単価"
+                    .Range(cntstrExcelColBepr & cntlngExcelRowDataFirst & ":" & _
+                           cntstrExcelColPric & .Rows.Count).NumberFormatLocal = "\#,##0;\-#,##0"
+                    .Cells(cntlngExcelRowDataFirst - 1, cntstrExcelColCrdt).Value = "処理日"
+                    .Range(cntstrExcelColCrdt & cntlngExcelRowDataFirst & ":" & _
+                           cntstrExcelColCrdt & .Rows.Count).NumberFormatLocal = "yyyy/mm/dd"
+                    .Cells(cntlngExcelRowDataFirst - 1, cntstrExcelColCrtm).Value = "時間"
+                    .Range(cntstrExcelColCrtm & cntlngExcelRowDataFirst & ":" & _
+                           cntstrExcelColCrtm & .Rows.Count).NumberFormatLocal = "hh:mm:ss"
+
+                    .Range(cntstrExcelColOrno & cntlngExcelRowDataFirst - 1 & ":" & _
+                           cntstrExcelColCrtm & cntlngExcelRowDataFirst - 1).Font.Bold = True
+
+                    .Range(cntstrExcelColOrno & cntlngExcelRowDataFirst - 1 & ":" & _
+                           cntstrExcelColCrtm & cntlngExcelRowDataFirst - 1).Interior.Color = 65535
+
+                    .Columns(cntstrExcelColOrno & ":" & cntstrExcelColOrno).ColumnWidth = 9 'オーダー
+                    .Columns(cntstrExcelColOpno & ":" & cntstrExcelColOpno).ColumnWidth = 9 '作業手順
+                    .Columns(cntstrExcelColErrf & ":" & cntstrExcelColErrf).ColumnWidth = 15 'エラー内容
+                    .Columns(cntstrExcelColOrdf & ":" & cntstrExcelColOrdf).ColumnWidth = 8.5 '発注区分
+                    .Columns(cntstrExcelColEmrg & ":" & cntstrExcelColEmrg).ColumnWidth = 18 '着手日工程緊急度
+                    .Columns(cntstrExcelColFydt & ":" & cntstrExcelColFydt).ColumnWidth = 14 '要求工程納期
+                    .Columns(cntstrExcelColBepr & ":" & cntstrExcelColBepr).ColumnWidth = 12 '前回単価
+                    .Columns(cntstrExcelColPric & ":" & cntstrExcelColPric).ColumnWidth = 12 '単価
+                    .Columns(cntstrExcelColCrdt & ":" & cntstrExcelColCrdt).ColumnWidth = 14 '処理日
+                    .Columns(cntstrExcelColCrtm & ":" & cntstrExcelColCrtm).ColumnWidth = 9 '時間
+
+                    lngRow = cntlngExcelRowDataFirst
+                    Do Until adoRecord1.EOF
+                        .Cells(lngRow, cntstrExcelColOrno).Value = adoRecord1.Fields("オーダー").Value
+                        .Cells(lngRow, cntstrExcelColOpno).Value = adoRecord1.Fields("作業手順").Value
+                        .Cells(lngRow, cntstrExcelColErrf).Value = adoRecord1.Fields("エラー内容").Value
+                        .Cells(lngRow, cntstrExcelColOrdf).Value = adoRecord1.Fields("発注区分").Value
+                        .Cells(lngRow, cntstrExcelColEmrg).Value = adoRecord1.Fields("着手日工程緊急度").Value
+                        .Cells(lngRow, cntstrExcelColFydt).Value = adoRecord1.Fields("要求工程納期").Value
+                        .Cells(lngRow, cntstrExcelColBepr).Value = adoRecord1.Fields("前回単価").Value
+                        .Cells(lngRow, cntstrExcelColPric).Value = adoRecord1.Fields("単価").Value
+                        .Cells(lngRow, cntstrExcelColCrdt).Value = adoRecord1.Fields("処理日").Value
+                        .Cells(lngRow, cntstrExcelColCrtm).Value = adoRecord1.Fields("時間").Value
+
+                        lngRow = lngRow + 1
+                        adoRecord1.MoveNext()
+                    Loop
+                End With
+                '保存する
+                objbook.SaveAs("C:\temp\エラー履歴(" & Format(Now, "yyMMdd-HHmmss") & ").xlsx")
+
+            End If
+        Catch ex As Exception
+            Throw ex
+
+        Finally
+            'オブジェクト解放
+            If objapp Is Nothing Then
+                MsgBox("エラー履歴はありませんでした。", MsgBoxStyle.Information)
+
+            Else
+                objapp.Quit()
+                Marshal.ReleaseComObject(objsheet)
+                Marshal.ReleaseComObject(objbook)
+                Marshal.ReleaseComObject(objapp)
+                MsgBox("C:\tempへエラー履歴を出力しました。", MsgBoxStyle.Information)
+            End If
+
+            adoRecord1.Close()
+            DBCon.Close()
+            adoRecord1 = Nothing
+            DBCon = Nothing
+
+
+        End Try
+
+    End Sub
+    'v2.8 2017.03.30 M.Suzuki(TSK) ******************************************** Add End
+
+    ''' <summary>
+    ''' 発注/発注取消オプションの選択(発注選択時)
+    ''' </summary>
+    ''' <param name="sender"></param>
+    ''' <param name="e"></param>
+    Private Sub OptOrder0_CheckedChanged(sender As Object, e As EventArgs) Handles OptOrder0.CheckedChanged
+        Me.cmdOrder.Text = "発注"
+    End Sub
+
+    ''' <summary>
+    ''' 発注/発注取消オプションの選択(発注取消選択時)
+    ''' </summary>
+    ''' <param name="sender"></param>
+    ''' <param name="e"></param>
+    Private Sub OptOrder1_CheckedChanged(sender As Object, e As EventArgs) Handles OptOrder1.CheckedChanged
+        Me.cmdOrder.Text = "発注取消"
+    End Sub
+
+End Class
